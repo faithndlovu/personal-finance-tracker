@@ -55,7 +55,9 @@ export default function SignIn() {
                 <Text style={{ color: colors.muted }}>New here? </Text>
                 <Link href="/sign-up" style={{ color: colors.primary, fontWeight: '700' }}>Create an account</Link>
               </View>
-              <Text style={s.hint}>Demo: demo@example.com / Password123! (run <Text style={{ fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }) }}>npm run seed</Text> in the backend)</Text>
+              {__DEV__ ? (
+                <Text style={s.hint}>Demo: demo@example.com / Password123! (run <Text style={{ fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }) }}>npm run seed</Text> in the backend)</Text>
+              ) : null}
             </View>
 
             <Pressable onPress={() => setShowServer((v) => !v)} style={[s.rowCenter, { marginTop: 18 }]}>
