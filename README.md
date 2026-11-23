@@ -9,7 +9,14 @@ It covers **mobile development**, **database management**, **authentication** an
 **Authentication**
 - Register and sign in with bcrypt-hashed passwords and JWT tokens.
 - The token is stored in the device keychain/keystore (`expo-secure-store`), so you stay signed in.
-- Change your password, set your currency (ZAR, USD, EUR, GBP), or delete your account with all its data.
+- Change your password, choose a default currency for new entries, or delete your account with all its data.
+- Admin accounts can open the Admin screen to list users, change roles and delete accounts.
+
+**Multiple currencies**
+- Choose a currency separately for each transaction, budget and savings goal. Supported currencies include ZiG (`ZWG`), Botswana pula (`BWP`), USD and currencies provided by the runtime's ISO 4217 currency data.
+- Amounts are never converted or combined across currencies. Currency selectors on the dashboard and list screens show totals for one currency at a time.
+- Changing your profile's default currency affects new entries only. Existing entries keep their currency; a goal's currency is locked after creation.
+- Existing databases are migrated by assigning each historical entry the user's current profile currency, since older records did not store their own currency.
 
 **Transactions**
 - Add, edit and delete income and expenses with category, description and date.
@@ -32,7 +39,7 @@ It covers **mobile development**, **database management**, **authentication** an
 - Donut chart of spending by category and a 6-month income vs expenses chart.
 
 **How the calculations work** (`backend/src/finance.js`, unit-tested)
-- Money is stored as **integer cents**, so there are no floating-point errors (`0.1 + 0.2` gives exactly `0.30`).
+- Money is stored as an integer in each currency's smallest unit (including currencies with zero or three fraction digits), so calculations avoid floating-point errors.
 - Savings rate = (income − expenses) ÷ income
 - Projected spend = daily average so far × days in the month
 - Monthly amount needed for a goal = remaining amount ÷ whole calendar months until the deadline
@@ -111,6 +118,7 @@ The web app is hosted on Vercel, the API on Railway, and mobile builds are share
    - `DB_PATH=/data/finance.db`
    - `JWT_SECRET` to a randomly generated secret of at least 32 characters. Generate one locally with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Never commit or share it.
    - `CORS_ORIGINS` to the exact Vercel origin, for example `https://your-project.vercel.app` (no trailing slash). Include additional trusted origins as a comma-separated list.
+   - Optionally set `ADMIN_EMAIL` to an existing account email to grant that account admin access on startup.
    Generate a public Railway domain and configure the service health check to use `/api/health`.
 3. **Connect Vercel to the API.** In Vercel project settings, add `EXPO_PUBLIC_API_URL` with the Railway public URL (for example `https://your-api.up.railway.app`, without a trailing slash), then redeploy the web app. Since this URL is embedded in the client bundle, it is public configuration, not a secret.
 4. **Build mobile apps for sharing.** Create an Expo account, then run these commands from `mobile`. Link the project when prompted and set the API URL in both EAS environments:
@@ -138,20 +146,21 @@ All routes except register, login and health need `Authorization: Bearer <token>
 
 | Method | Endpoint | Description |
 |---|---|---|
+| GET | `/api/currencies` | Supported ISO currency codes, names and fraction digits |
 | POST | `/api/auth/register` | `{ name, email, password, currency? }` creates the account and default categories |
 | POST | `/api/auth/login` | `{ email, password }` returns `{ token, user }` |
 | GET / PUT / DELETE | `/api/auth/me` | Profile, update (name, currency, password), delete account |
 | GET / POST | `/api/categories` | List / create categories |
 | DELETE | `/api/categories/:id` | Delete (only if it has no transactions) |
-| GET | `/api/transactions?month=YYYY-MM&type=&category_id=&q=` | List with totals |
-| POST / PUT / DELETE | `/api/transactions[/:id]` | `{ amount, date, category_id, description? }` |
-| GET | `/api/budgets?month=YYYY-MM` | Budgets with spent, remaining, percent and status |
-| POST | `/api/budgets` | `{ category_id, limit }`. Creates the budget, or updates it if one exists |
+| GET | `/api/transactions?month=YYYY-MM&type=&category_id=&q=&currency=` | List and totals for one currency; defaults to the profile currency |
+| POST / PUT / DELETE | `/api/transactions[/:id]` | `{ amount, currency?, date, category_id, description? }` |
+| GET | `/api/budgets?month=YYYY-MM&currency=` | Budgets with spent, remaining, percent and status for one currency |
+| POST | `/api/budgets` | `{ category_id, limit, currency? }`. Creates or updates the budget for that category and currency |
 | DELETE | `/api/budgets/:id` | Remove a budget |
-| GET / POST | `/api/goals` | List with plan / create `{ name, target, saved?, deadline?, icon? }` |
+| GET / POST | `/api/goals?currency=` | List for one currency / create `{ name, target, currency?, saved?, deadline?, icon? }` |
 | GET / PUT / DELETE | `/api/goals/:id` | Detail (with contributions) / update / delete |
 | POST | `/api/goals/:id/contribute` | `{ amount }`. Use a negative amount to withdraw |
-| GET | `/api/summary?month=YYYY-MM` | Dashboard: totals, savings rate, categories, trend, projection |
+| GET | `/api/summary?month=YYYY-MM&currency=` | Dashboard totals, savings rate, categories, trend and projection for one currency |
 
 ## License
 

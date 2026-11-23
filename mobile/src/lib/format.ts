@@ -1,13 +1,17 @@
 const formatters = new Map<string, Intl.NumberFormat>();
 
-/** Formats an amount in the user's currency, e.g. R 1 250,00 or $1,250.00. */
+/** Formats an amount using the currency's usual number of fractional digits. */
 export function money(amount: number, currency = 'ZAR', opts: { compact?: boolean; sign?: boolean } = {}) {
   const key = `${currency}-${opts.compact}`;
   let f = formatters.get(key);
   if (!f) {
     try {
-      f = new Intl.NumberFormat(currency === 'ZAR' ? 'en-ZA' : 'en-US', {
-        style: 'currency', currency, maximumFractionDigits: opts.compact ? 0 : 2, minimumFractionDigits: opts.compact ? 0 : 2,
+      const locale = currency === 'ZAR' ? 'en-ZA' : currency === 'BWP' ? 'en-BW' : currency === 'ZWG' ? 'en-ZW' : 'en-US';
+      const fractionDigits = new Intl.NumberFormat(locale, { style: 'currency', currency }).resolvedOptions().maximumFractionDigits;
+      f = new Intl.NumberFormat(locale, {
+        style: 'currency', currency,
+        maximumFractionDigits: opts.compact ? 0 : fractionDigits,
+        minimumFractionDigits: opts.compact ? 0 : fractionDigits,
       });
     } catch {
       f = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 2 });

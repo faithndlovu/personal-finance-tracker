@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { DonutChart, TrendChart } from '@/components/charts';
+import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { TransactionRow } from '@/components/TransactionRow';
 import { Card, EmptyState, ErrorBanner, Loading, MonthSwitcher, SectionTitle } from '@/components/ui';
 import { colors, radius } from '@/constants/theme';
@@ -15,16 +16,18 @@ export default function Overview() {
   const { user } = useAuth();
   const router = useRouter();
   const [month, setMonth] = useState(currentMonth());
-  const { data, error, loading, refreshing, refresh, reload } = useFocusData(() => api.summary(month), [month]);
+  const [currency, setCurrency] = useState(user?.currency || 'ZAR');
+  const { data, error, loading, refreshing, refresh, reload } = useFocusData(() => api.summary(month, currency), [month, currency]);
   const { width } = useWindowDimensions();
   const contentWidth = Math.min(width, 640) - 40 - 32;
-  const cur = user?.currency || 'ZAR';
+  const cur = currency;
 
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={st.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
         <Text style={st.greeting}>Hi {user?.name.split(' ')[0]} 👋</Text>
+        <CurrencyPicker value={currency} onChange={setCurrency} />
         <MonthSwitcher month={month} onChange={setMonth} />
         {error ? <View style={{ marginTop: 12 }}><ErrorBanner message={error} onRetry={() => reload()} /></View> : null}
         {loading && !data ? <Loading /> : data && (
@@ -64,7 +67,7 @@ export default function Overview() {
             </View>
 
             {data.budgets.over + data.budgets.warning > 0 && (
-              <Pressable onPress={() => router.push('/budgets')} style={[st.alert, { backgroundColor: data.budgets.over ? colors.expenseSoft : colors.warningSoft }]}>
+              <Pressable onPress={() => router.push({ pathname: '/budgets', params: { currency } })} style={[st.alert, { backgroundColor: data.budgets.over ? colors.expenseSoft : colors.warningSoft }]}>
                 <Ionicons name="warning" size={20} color={data.budgets.over ? colors.expense : colors.warning} />
                 <Text style={{ flex: 1, color: colors.text }}>
                   {data.budgets.over ? `${data.budgets.over} budget${data.budgets.over > 1 ? 's' : ''} over the limit` : ''}
@@ -101,13 +104,13 @@ export default function Overview() {
             </SectionTitle>
             <Card><TrendChart data={data.trend} width={contentWidth} /></Card>
 
-            <SectionTitle right={<Pressable onPress={() => router.push('/transactions')}><Text style={{ color: colors.primary, fontWeight: '600' }}>See all</Text></Pressable>}>
+            <SectionTitle right={<Pressable onPress={() => router.push({ pathname: '/transactions', params: { currency } })}><Text style={{ color: colors.primary, fontWeight: '600' }}>See all</Text></Pressable>}>
               Recent transactions
             </SectionTitle>
             <Card style={{ paddingVertical: 4 }}>
               {data.recent.length === 0
                 ? <EmptyState icon="receipt-outline" title="No transactions yet" text="Tap + to record your first income or expense." />
-                : data.recent.map((t) => <TransactionRow key={t.id} t={t} currency={cur} onPress={() => router.push({ pathname: '/transaction', params: { id: String(t.id) } })} />)}
+                : data.recent.map((t) => <TransactionRow key={t.id} t={t} onPress={() => router.push({ pathname: '/transaction', params: { id: String(t.id) } })} />)}
             </Card>
           </>
         )}

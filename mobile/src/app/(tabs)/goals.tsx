@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Sheet } from '@/components/Sheet';
+import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { Button, Card, EmptyState, ErrorBanner, Field, Loading, ProgressBar, SectionTitle, Segmented, type IconName } from '@/components/ui';
 import { colors, radius } from '@/constants/theme';
 import { api } from '@/lib/api';
@@ -14,19 +15,20 @@ import type { Goal } from '@/lib/types';
 export default function Goals() {
   const router = useRouter();
   const { user } = useAuth();
-  const cur = user?.currency || 'ZAR';
-  const { data, error, loading, refreshing, refresh, reload } = useFocusData(() => api.goals());
+  const [currency, setCurrency] = useState(user?.currency || 'ZAR');
+  const { data, error, loading, refreshing, refresh, reload } = useFocusData(() => api.goals(currency), [currency]);
   const [contributeTo, setContributeTo] = useState<Goal | null>(null);
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={st.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
+      <CurrencyPicker value={currency} onChange={setCurrency} />
       {error ? <ErrorBanner message={error} onRetry={() => reload()} /> : null}
       {loading && !data ? <Loading /> : data && (
         <>
           <View style={st.hero}>
             <Text style={{ color: '#94A3B8' }}>Total saved</Text>
-            <Text style={st.heroValue}>{money(data.totals.saved, cur)}</Text>
-            <Text style={{ color: '#CBD5E1', marginBottom: 12 }}>of {money(data.totals.target, cur)} across {data.goals.length} goal{data.goals.length === 1 ? '' : 's'}</Text>
+            <Text style={st.heroValue}>{money(data.totals.saved, currency)}</Text>
+            <Text style={{ color: '#CBD5E1', marginBottom: 12 }}>of {money(data.totals.target, currency)} across {data.goals.length} goal{data.goals.length === 1 ? '' : 's'}</Text>
             <ProgressBar percent={data.totals.percent} color="#FACC15" height={10} />
           </View>
           <SectionTitle right={<Button small title="New goal" icon="add" onPress={() => router.push('/goal')} testID="new-goal" />}>Savings goals</SectionTitle>
@@ -41,16 +43,16 @@ export default function Goals() {
                   </View>
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={st.name}>{g.name}</Text>
-                    <Text style={st.muted}>{money(g.saved, cur)} of {money(g.target, cur)}</Text>
+                    <Text style={st.muted}>{money(g.saved, g.currency)} of {money(g.target, g.currency)}</Text>
                   </View>
                   <Text style={[st.percent, g.achieved && { color: colors.income }]}>{g.percent}%</Text>
                 </View>
                 <View style={{ marginVertical: 12 }}><ProgressBar percent={g.percent} color={g.achieved ? colors.income : colors.primary} /></View>
                 <Text style={[st.muted, g.overdue && { color: colors.expense }]}>
                   {g.achieved ? '🎉 Goal reached!'
-                    : g.overdue ? `Deadline passed · ${money(g.remaining, cur)} still to go`
-                    : g.monthly_needed !== null ? `Save ${money(g.monthly_needed, cur)}/month for ${g.months_left} month${g.months_left === 1 ? '' : 's'} · by ${dateLabel(g.deadline!)}`
-                    : `${money(g.remaining, cur)} to go · no deadline`}
+                    : g.overdue ? `Deadline passed · ${money(g.remaining, g.currency)} still to go`
+                    : g.monthly_needed !== null ? `Save ${money(g.monthly_needed, g.currency)}/month for ${g.months_left} month${g.months_left === 1 ? '' : 's'} · by ${dateLabel(g.deadline!)}`
+                    : `${money(g.remaining, g.currency)} to go · no deadline`}
                 </Text>
               </Pressable>
               {!g.achieved && (
@@ -62,12 +64,12 @@ export default function Goals() {
           ))}
         </>
       )}
-      <ContributeSheet goal={contributeTo} currency={cur} onClose={() => setContributeTo(null)} onDone={() => { setContributeTo(null); void reload(); }} />
+      <ContributeSheet goal={contributeTo} onClose={() => setContributeTo(null)} onDone={() => { setContributeTo(null); void reload(); }} />
     </ScrollView>
   );
 }
 
-function ContributeSheet({ goal, currency, onClose, onDone }: { goal: Goal | null; currency: string; onClose: () => void; onDone: () => void }) {
+function ContributeSheet({ goal, onClose, onDone }: { goal: Goal | null; onClose: () => void; onDone: () => void }) {
   const [mode, setMode] = useState<'add' | 'withdraw'>('add');
   const [amount, setAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -87,11 +89,11 @@ function ContributeSheet({ goal, currency, onClose, onDone }: { goal: Goal | nul
       {error ? <ErrorBanner message={error} /> : null}
       <Segmented value={mode} onChange={setMode} options={[{ value: 'add', label: 'Add money' }, { value: 'withdraw', label: 'Withdraw' }]} />
       <View style={{ height: 14 }} />
-      {goal && <Text style={[st.muted, { marginBottom: 12 }]}>Saved so far: {money(goal.saved, currency)} · {money(goal.remaining, currency)} to go</Text>}
-      <Field label={`Amount (${currency})`} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" testID="contribute-amount" />
+      {goal && <Text style={[st.muted, { marginBottom: 12 }]}>Saved so far: {money(goal.saved, goal.currency)} · {money(goal.remaining, goal.currency)} to go</Text>}
+      <Field label={`Amount (${goal?.currency || ''})`} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" testID="contribute-amount" />
       {goal && goal.remaining > 0 && mode === 'add' && (
         <Pressable onPress={() => setAmount(String(goal.remaining))} style={{ marginTop: -6, marginBottom: 16 }}>
-          <Text style={{ color: colors.primary, fontWeight: '600' }}>Fill remaining ({money(goal.remaining, currency)})</Text>
+          <Text style={{ color: colors.primary, fontWeight: '600' }}>Fill remaining ({money(goal.remaining, goal.currency)})</Text>
         </Pressable>
       )}
       <Button title={mode === 'add' ? 'Add to goal' : 'Withdraw'} onPress={submit} loading={busy} testID="contribute-save" />

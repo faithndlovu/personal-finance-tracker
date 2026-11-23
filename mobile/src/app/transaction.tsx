@@ -1,9 +1,11 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { Button, CategoryIcon, ErrorBanner, Field, Loading, Segmented } from '@/components/ui';
 import { colors, radius } from '@/constants/theme';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { todayISO, parseAmount } from '@/lib/format';
 import { confirm } from '@/lib/hooks';
 import type { Category } from '@/lib/types';
@@ -11,11 +13,13 @@ import type { Category } from '@/lib/types';
 /** Create (no id) or edit (?id=123) a transaction. */
 export default function TransactionForm() {
   const router = useRouter();
+  const { user } = useAuth();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const editing = !!id;
   const [categories, setCategories] = useState<Category[]>([]);
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState(user?.currency || 'ZAR');
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(todayISO());
@@ -30,7 +34,8 @@ export default function TransactionForm() {
         setCategories(cats);
         if (existing) {
           const t = existing.transaction;
-          setType(t.type); setAmount(String(t.amount)); setCategoryId(t.category_id); setDescription(t.description); setDate(t.date);
+          setType(t.type); setAmount(String(t.amount)); setCurrency(t.currency);
+          setCategoryId(t.category_id); setDescription(t.description); setDate(t.date);
         }
       } catch (e: any) { setError(e.message); } finally { setLoading(false); }
     })();
@@ -48,7 +53,7 @@ export default function TransactionForm() {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return setError('Date must be in YYYY-MM-DD format');
     setBusy(true); setError(null);
     try {
-      const body = { amount: value, category_id: categoryId, description, date };
+      const body = { amount: value, currency, category_id: categoryId, description, date };
       if (editing) await api.updateTransaction(Number(id), body); else await api.createTransaction(body);
       router.back();
     } catch (e: any) { setError(e.message); setBusy(false); }
@@ -72,6 +77,7 @@ export default function TransactionForm() {
           {error ? <ErrorBanner message={error} /> : null}
           <Segmented value={type} onChange={setType} options={[{ value: 'expense', label: 'Expense' }, { value: 'income', label: 'Income' }]} />
           <View style={{ height: 16 }} />
+          <CurrencyPicker value={currency} onChange={setCurrency} />
           <Field label="Amount" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" testID="amount"
             style={{ fontSize: 28, fontWeight: '700', color: type === 'income' ? colors.income : colors.text }} />
           <Text style={st.label}>Category</Text>

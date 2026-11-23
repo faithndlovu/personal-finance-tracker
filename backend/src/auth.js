@@ -11,7 +11,7 @@ const signToken = (user) => jwt.sign({ sub: user.id }, JWT_SECRET, { expiresIn: 
 
 /** Verifies the Bearer token and attaches the user to req.user. */
 function authenticate(db) {
-  const findUser = db.prepare('SELECT id, name, email, currency, created_at FROM users WHERE id = ?');
+  const findUser = db.prepare('SELECT id, name, email, currency, role, created_at FROM users WHERE id = ?');
   return (req, res, next) => {
     const [scheme, token] = (req.headers.authorization || '').split(' ');
     if (scheme !== 'Bearer' || !token) return res.status(401).json({ error: 'Authentication required' });

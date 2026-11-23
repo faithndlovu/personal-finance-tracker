@@ -1,18 +1,40 @@
 /**
  * Pure financial calculation helpers (no database access) so they are easy to unit-test.
- * All money values are integer cents.
+ * Money is stored in each currency's smallest unit.
  */
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+const CURRENCY_CODES = new Set(Intl.supportedValuesOf('currency'));
+const CURRENCY_NAMES = new Intl.DisplayNames(['en'], { type: 'currency' });
 
-/** Converts a user-entered amount (e.g. "149.99" or 149.99) to cents, or null if invalid. */
-function toCents(value) {
+function normalizeCurrency(value) {
+  if (typeof value !== 'string') return null;
+  const code = value.trim().toUpperCase();
+  return CURRENCY_CODES.has(code) ? code : null;
+}
+
+function currencyFractionDigits(currency) {
+  const code = normalizeCurrency(currency);
+  if (!code) throw new RangeError(`Unsupported currency: ${currency}`);
+  return new Intl.NumberFormat('en', { style: 'currency', currency: code }).resolvedOptions().maximumFractionDigits;
+}
+
+function listCurrencies() {
+  return [...CURRENCY_CODES].sort().map((code) => ({
+    code,
+    name: code === 'ZWG' ? 'ZiG (Zimbabwe Gold)' : CURRENCY_NAMES.of(code) || code,
+    fraction_digits: currencyFractionDigits(code),
+  }));
+}
+
+/** Converts a user-entered amount into the currency's smallest unit, or null if invalid. */
+function toMinorUnits(value, currency) {
   const n = typeof value === 'string' ? Number(value.replace(/[,\s]/g, '')) : Number(value);
   if (!Number.isFinite(n)) return null;
-  return Math.round(n * 100);
+  return Math.round(n * (10 ** currencyFractionDigits(currency)));
 }
-const fromCents = (cents) => Math.round(cents) / 100;
+const fromMinorUnits = (amount, currency) => amount / (10 ** currencyFractionDigits(currency));
 
 function isValidDate(s) {
   if (!DATE_RE.test(s || '')) return false;
@@ -40,19 +62,19 @@ function previousMonths(month, n) {
 }
 
 /** Share of income kept, as a whole percentage (can be negative). Null when there is no income. */
-function savingsRate(incomeCents, expenseCents) {
-  if (incomeCents <= 0) return null;
-  return Math.round(((incomeCents - expenseCents) / incomeCents) * 100);
+function savingsRate(incomeMinor, expenseMinor) {
+  if (incomeMinor <= 0) return null;
+  return Math.round(((incomeMinor - expenseMinor) / incomeMinor) * 100);
 }
 
 /** Budget usage and status. Warning at 80% or more, over when spending exceeds the limit. */
-function budgetStatus(spentCents, limitCents) {
-  const percent = limitCents > 0 ? Math.round((spentCents / limitCents) * 100) : 0;
+function budgetStatus(spentMinor, limitMinor) {
+  const percent = limitMinor > 0 ? Math.round((spentMinor / limitMinor) * 100) : 0;
   return {
-    spent_cents: spentCents,
-    remaining_cents: limitCents - spentCents,
+    spent_minor: spentMinor,
+    remaining_minor: limitMinor - spentMinor,
     percent,
-    status: spentCents > limitCents ? 'over' : percent >= 80 ? 'warning' : 'ok',
+    status: spentMinor > limitMinor ? 'over' : percent >= 80 ? 'warning' : 'ok',
   };
 }
 
@@ -60,19 +82,19 @@ function budgetStatus(spentCents, limitCents) {
  * Spending pace for a month: average per elapsed day and projected month-end total.
  * For past months the projection equals actual spending.
  */
-function spendingProjection(expenseCents, month, today = new Date()) {
+function spendingProjection(expenseMinor, month, today = new Date()) {
   const total = daysInMonth(month);
   const nowMonth = currentMonth(today);
   let elapsed;
   if (month < nowMonth) elapsed = total;
   else if (month > nowMonth) elapsed = 0;
   else elapsed = today.getUTCDate();
-  const dailyAverage = elapsed ? Math.round(expenseCents / elapsed) : 0;
+  const dailyAverage = elapsed ? Math.round(expenseMinor / elapsed) : 0;
   return {
     days_elapsed: elapsed,
     days_in_month: total,
-    daily_average_cents: dailyAverage,
-    projected_cents: elapsed ? Math.round(dailyAverage * total) : 0,
+    daily_average_minor: dailyAverage,
+    projected_minor: elapsed ? Math.round(dailyAverage * total) : 0,
   };
 }
 
@@ -93,19 +115,20 @@ function monthsUntil(deadline, from = new Date()) {
 
 /** Progress and required monthly contribution for a savings goal. */
 function goalPlan(goal, today = new Date()) {
-  const remaining = Math.max(0, goal.target_cents - goal.saved_cents);
-  const percent = Math.min(100, Math.round((goal.saved_cents / goal.target_cents) * 100));
-  const plan = { remaining_cents: remaining, percent, achieved: remaining === 0, months_left: null, monthly_needed_cents: null, overdue: false };
+  const remaining = Math.max(0, goal.target_minor - goal.saved_minor);
+  const percent = Math.min(100, Math.round((goal.saved_minor / goal.target_minor) * 100));
+  const plan = { remaining_minor: remaining, percent, achieved: remaining === 0, months_left: null, monthly_needed_minor: null, overdue: false };
   if (goal.deadline && remaining > 0) {
     const months = monthsUntil(goal.deadline, today);
     plan.months_left = months;
     if (months === 0) plan.overdue = true;
-    else plan.monthly_needed_cents = Math.ceil(remaining / months);
+    else plan.monthly_needed_minor = Math.ceil(remaining / months);
   }
   return plan;
 }
 
 module.exports = {
-  MONTH_RE, toCents, fromCents, isValidDate, currentMonth, daysInMonth, monthRange, previousMonths,
+  MONTH_RE, normalizeCurrency, currencyFractionDigits, listCurrencies, toMinorUnits, fromMinorUnits,
+  isValidDate, currentMonth, daysInMonth, monthRange, previousMonths,
   savingsRate, budgetStatus, spendingProjection, monthsUntil, goalPlan,
 };

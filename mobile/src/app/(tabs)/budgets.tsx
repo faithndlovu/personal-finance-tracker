@@ -1,7 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Sheet } from '@/components/Sheet';
+import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { Button, Card, CategoryIcon, EmptyState, ErrorBanner, Field, Loading, MonthSwitcher, ProgressBar, SectionTitle } from '@/components/ui';
 import { colors, radius } from '@/constants/theme';
 import { api } from '@/lib/api';
@@ -13,14 +15,16 @@ import type { Budget, Category } from '@/lib/types';
 const statusColor = { ok: colors.income, warning: colors.warning, over: colors.expense };
 
 export default function Budgets() {
+  const params = useLocalSearchParams<{ currency?: string }>();
   const { user } = useAuth();
-  const cur = user?.currency || 'ZAR';
+  const [currency, setCurrency] = useState(params.currency || user?.currency || 'ZAR');
   const [month, setMonth] = useState(currentMonth());
-  const { data, error, loading, refreshing, refresh, reload } = useFocusData(() => api.budgets(month), [month]);
+  const { data, error, loading, refreshing, refresh, reload } = useFocusData(() => api.budgets(month, currency), [month, currency]);
   const [sheet, setSheet] = useState<{ budget?: Budget } | null>(null);
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={st.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
+      <CurrencyPicker value={currency} onChange={setCurrency} />
       <MonthSwitcher month={month} onChange={setMonth} />
       {error ? <View style={{ marginTop: 12 }}><ErrorBanner message={error} onRetry={() => reload()} /></View> : null}
       {loading && !data ? <Loading /> : data && (
@@ -29,12 +33,12 @@ export default function Budgets() {
             <Card style={{ marginTop: 16 }}>
               <Text style={st.muted}>Total budgeted</Text>
               <View style={st.rowBetween}>
-                <Text style={st.big}>{money(data.totals.spent, cur)}</Text>
-                <Text style={st.muted}>of {money(data.totals.limit, cur)}</Text>
+                <Text style={st.big}>{money(data.totals.spent, currency)}</Text>
+                <Text style={st.muted}>of {money(data.totals.limit, currency)}</Text>
               </View>
               <ProgressBar percent={data.totals.percent} height={10} color={data.totals.percent > 100 ? colors.expense : data.totals.percent >= 80 ? colors.warning : colors.primary} />
               <Text style={[st.muted, { marginTop: 8 }]}>
-                {data.totals.remaining >= 0 ? `${money(data.totals.remaining, cur)} left to spend` : `${money(-data.totals.remaining, cur)} over budget`}
+                {data.totals.remaining >= 0 ? `${money(data.totals.remaining, currency)} left to spend` : `${money(-data.totals.remaining, currency)} over budget`}
               </Text>
             </Card>
           )}
@@ -49,7 +53,7 @@ export default function Budgets() {
                     <CategoryIcon icon={b.category_icon} color={b.category_color} size={36} />
                     <View style={{ marginLeft: 10 }}>
                       <Text style={st.name}>{b.category_name}</Text>
-                      <Text style={st.muted}>{money(b.spent, cur)} of {money(b.limit, cur)}</Text>
+                      <Text style={st.muted}>{money(b.spent, currency)} of {money(b.limit, currency)}</Text>
                     </View>
                   </View>
                   <View style={[st.pill, { backgroundColor: `${statusColor[b.status]}1A` }]}>
@@ -58,7 +62,7 @@ export default function Budgets() {
                 </View>
                 <ProgressBar percent={b.percent} color={statusColor[b.status]} />
                 <Text style={[st.muted, { marginTop: 8, color: b.status === 'over' ? colors.expense : colors.muted }]}>
-                  {b.status === 'over' ? `Over by ${money(-b.remaining, cur)}` : `${money(b.remaining, cur)} remaining`}
+                  {b.status === 'over' ? `Over by ${money(-b.remaining, currency)}` : `${money(b.remaining, currency)} remaining`}
                   {b.status === 'warning' ? ' · getting close' : ''}
                 </Text>
               </Card>
@@ -66,7 +70,7 @@ export default function Budgets() {
           ))}
         </>
       )}
-      <BudgetSheet state={sheet} currency={cur} existing={data?.budgets || []} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); void reload(); }} />
+      <BudgetSheet state={sheet} currency={currency} existing={data?.budgets || []} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); void reload(); }} />
     </ScrollView>
   );
 }
@@ -106,7 +110,7 @@ function BudgetSheet({ state, currency, existing, onClose, onSaved }: {
     if (!categoryId) return setError('Choose a category');
     if (!Number.isFinite(value) || value <= 0) return setError('Enter a monthly limit greater than 0');
     setBusy(true);
-    try { await api.saveBudget({ category_id: categoryId, limit: value }); onSaved(); } catch (e: any) { setError(e.message); } finally { setBusy(false); }
+    try { await api.saveBudget({ category_id: categoryId, limit: value, currency }); onSaved(); } catch (e: any) { setError(e.message); } finally { setBusy(false); }
   }
   async function remove() {
     if (!state?.budget || !(await confirm('Remove budget?', `Stop tracking a limit for ${state.budget.category_name}?`, 'Remove'))) return;

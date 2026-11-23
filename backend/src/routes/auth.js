@@ -2,24 +2,26 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { signToken, authenticate } = require('../auth');
 const { addDefaultCategories } = require('../db');
+const { normalizeCurrency } = require('../finance');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const CURRENCY_RE = /^[A-Z]{3}$/;
 
 module.exports = function authRoutes(db) {
   const router = express.Router();
-  const getUser = db.prepare('SELECT id, name, email, currency, created_at FROM users WHERE id = ?');
+  const getUser = db.prepare('SELECT id, name, email, currency, role, created_at FROM users WHERE id = ?');
 
   router.post('/register', (req, res) => {
     const { name, email, password, currency = 'ZAR' } = req.body || {};
+    const currencyCode = normalizeCurrency(currency);
     if (!name || !String(name).trim()) return res.status(400).json({ error: 'Name is required' });
     if (!EMAIL_RE.test(email || '')) return res.status(400).json({ error: 'A valid email is required' });
     if (!password || password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
-    if (!CURRENCY_RE.test(currency)) return res.status(400).json({ error: 'Currency must be a 3-letter code, e.g. ZAR' });
+    if (!currencyCode) return res.status(400).json({ error: 'Choose a supported ISO 4217 currency' });
     if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(email)) return res.status(409).json({ error: 'Email is already registered' });
     const id = db.transaction(() => {
-      const info = db.prepare('INSERT INTO users (name, email, password_hash, currency) VALUES (?, ?, ?, ?)')
-        .run(String(name).trim(), email.toLowerCase(), bcrypt.hashSync(password, 10), currency);
+      const firstAccount = db.prepare('SELECT COUNT(*) AS count FROM users').get().count === 0;
+      const info = db.prepare('INSERT INTO users (name, email, password_hash, currency, role) VALUES (?, ?, ?, ?, ?)')
+        .run(String(name).trim(), email.toLowerCase(), bcrypt.hashSync(password, 10), currencyCode, firstAccount ? 'admin' : 'user');
       addDefaultCategories(db, info.lastInsertRowid);
       return info.lastInsertRowid;
     })();
@@ -41,9 +43,9 @@ module.exports = function authRoutes(db) {
     const { name, currency, current_password, new_password } = req.body || {};
     const row = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
     const nextName = name !== undefined ? String(name).trim() : row.name;
-    const nextCurrency = currency !== undefined ? String(currency).toUpperCase() : row.currency;
+    const nextCurrency = normalizeCurrency(currency !== undefined ? currency : row.currency);
     if (!nextName) return res.status(400).json({ error: 'Name is required' });
-    if (!CURRENCY_RE.test(nextCurrency)) return res.status(400).json({ error: 'Currency must be a 3-letter code, e.g. ZAR' });
+    if (!nextCurrency) return res.status(400).json({ error: 'Choose a supported ISO 4217 currency' });
     let hash = row.password_hash;
     if (new_password) {
       if (!bcrypt.compareSync(current_password || '', row.password_hash)) return res.status(400).json({ error: 'Current password is incorrect' });

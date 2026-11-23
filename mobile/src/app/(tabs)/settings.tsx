@@ -2,13 +2,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, ErrorBanner, Field, SectionTitle, Segmented } from '@/components/ui';
+import { CurrencyPicker } from '@/components/CurrencyPicker';
+import { Button, Card, ErrorBanner, Field, SectionTitle } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { api, getApiUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { confirm, notify } from '@/lib/hooks';
-
-const CURRENCIES = ['ZAR', 'USD', 'EUR', 'GBP'].map((c) => ({ value: c, label: c }));
 
 export default function Settings() {
   const router = useRouter();
@@ -50,13 +49,21 @@ export default function Settings() {
       <SectionTitle>Profile</SectionTitle>
       <Card>
         <Field label="Name" value={name} onChangeText={setName} />
-        <Text style={st.label}>Currency</Text>
-        <Segmented options={CURRENCIES} value={currency} onChange={setCurrency} />
+        <CurrencyPicker value={currency} onChange={setCurrency} label="Default currency for new entries" />
         <View style={{ height: 16 }} />
         <Button title="Save profile" onPress={saveProfile} loading={busy === 'profile'} />
       </Card>
 
       <SectionTitle>Data</SectionTitle>
+      {user?.role === 'admin' ? (
+        <Pressable onPress={() => router.push('/admin')}>
+          <Card style={st.link}>
+            <Ionicons name="shield-checkmark-outline" size={22} color={colors.primary} />
+            <Text style={st.linkText}>Admin: manage accounts</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.muted} />
+          </Card>
+        </Pressable>
+      ) : null}
       <Pressable onPress={() => router.push('/categories')}>
         <Card style={st.link}>
           <Ionicons name="pricetags-outline" size={22} color={colors.primary} />

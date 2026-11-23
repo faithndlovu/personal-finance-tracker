@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { prefs, secureStorage } from './storage';
 import type {
-  Budget, BudgetsResponse, Category, Goal, GoalsResponse, Summary, Transaction, TransactionsResponse, User,
+  Budget, BudgetsResponse, Category, CurrencyOption, Goal, GoalsResponse, Summary, Transaction, TransactionsResponse, User,
 } from './types';
 
 const TOKEN_KEY = 'auth_token';
@@ -79,6 +79,7 @@ const qs = (params: Record<string, string | number | undefined>) => {
 
 export const api = {
   health: () => request<{ status: string }>('/health'),
+  currencies: () => request<{ currencies: CurrencyOption[] }>('/currencies'),
   register: (body: { name: string; email: string; password: string; currency?: string }) =>
     request<{ token: string; user: User }>('/auth/register', { method: 'POST', body }),
   login: (body: { email: string; password: string }) => request<{ token: string; user: User }>('/auth/login', { method: 'POST', body }),
@@ -86,30 +87,35 @@ export const api = {
   updateMe: (body: Partial<{ name: string; currency: string; current_password: string; new_password: string }>) =>
     request<{ user: User }>('/auth/me', { method: 'PUT', body }),
   deleteAccount: (password: string) => request<void>('/auth/me', { method: 'DELETE', body: { password } }),
+  adminUsers: () => request<{ users: import('./types').AdminUser[] }>('/admin/users'),
+  setAdminRole: (id: number, role: 'user' | 'admin') =>
+    request<{ user: import('./types').AdminUser }>(`/admin/users/${id}/role`, { method: 'PUT', body: { role } }),
+  deleteUser: (id: number) => request<void>(`/admin/users/${id}`, { method: 'DELETE' }),
 
-  summary: (month: string) => request<Summary>(`/summary${qs({ month })}`),
+  summary: (month: string, currency: string) => request<Summary>(`/summary${qs({ month, currency })}`),
   categories: () => request<{ categories: Category[] }>('/categories'),
   createCategory: (body: { name: string; type: 'income' | 'expense'; color?: string; icon?: string }) =>
     request<{ category: Category }>('/categories', { method: 'POST', body }),
   deleteCategory: (id: number) => request<void>(`/categories/${id}`, { method: 'DELETE' }),
 
-  transactions: (params: { month?: string; type?: string; q?: string; category_id?: number }) =>
+  transactions: (params: { month?: string; type?: string; q?: string; category_id?: number; currency?: string }) =>
     request<TransactionsResponse>(`/transactions${qs(params)}`),
   transaction: (id: number) => request<{ transaction: Transaction }>(`/transactions/${id}`),
   createTransaction: (body: TransactionInput) => request<{ transaction: Transaction }>('/transactions', { method: 'POST', body }),
   updateTransaction: (id: number, body: TransactionInput) => request<{ transaction: Transaction }>(`/transactions/${id}`, { method: 'PUT', body }),
   deleteTransaction: (id: number) => request<void>(`/transactions/${id}`, { method: 'DELETE' }),
 
-  budgets: (month: string) => request<BudgetsResponse>(`/budgets${qs({ month })}`),
-  saveBudget: (body: { category_id: number; limit: number | string }) => request<{ budget: Budget }>('/budgets', { method: 'POST', body }),
+  budgets: (month: string, currency: string) => request<BudgetsResponse>(`/budgets${qs({ month, currency })}`),
+  saveBudget: (body: { category_id: number; limit: number | string; currency?: string }) => request<{ budget: Budget }>('/budgets', { method: 'POST', body }),
   deleteBudget: (id: number) => request<void>(`/budgets/${id}`, { method: 'DELETE' }),
 
-  goals: () => request<GoalsResponse>('/goals'),
+  goals: (currency: string) => request<GoalsResponse>(`/goals${qs({ currency })}`),
   createGoal: (body: GoalInput) => request<{ goal: Goal }>('/goals', { method: 'POST', body }),
+  goal: (id: number) => request<{ goal: Goal; contributions: { id: number; amount: number; created_at: string }[] }>(`/goals/${id}`),
   updateGoal: (id: number, body: GoalInput) => request<{ goal: Goal }>(`/goals/${id}`, { method: 'PUT', body }),
   contribute: (id: number, amount: number) => request<{ goal: Goal }>(`/goals/${id}/contribute`, { method: 'POST', body: { amount } }),
   deleteGoal: (id: number) => request<void>(`/goals/${id}`, { method: 'DELETE' }),
 };
 
-export type TransactionInput = { amount: number | string; date: string; category_id: number; description?: string };
-export type GoalInput = { name: string; target: number | string; saved?: number | string; deadline?: string | null; icon?: string };
+export type TransactionInput = { amount: number | string; currency?: string; date: string; category_id: number; description?: string };
+export type GoalInput = { name: string; target: number | string; currency?: string; saved?: number | string; deadline?: string | null; icon?: string };

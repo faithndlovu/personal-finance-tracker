@@ -6,7 +6,8 @@ const { createDb } = require('../src/db');
 const { currentMonth } = require('../src/finance');
 
 describe('Finance Tracker API', () => {
-  const app = createApp({ db: createDb(':memory:') });
+  const db = createDb(':memory:');
+  const app = createApp({ db });
   let token, otherToken, cats;
   const auth = (t = token) => ({ Authorization: `Bearer ${t}` });
   const month = currentMonth();
@@ -25,6 +26,7 @@ describe('Finance Tracker API', () => {
     assert.ok(cats.Salary && cats.Groceries);
     const me = await request(app).get('/api/auth/me').set(auth()).expect(200);
     assert.equal(me.body.user.currency, 'ZAR');
+    assert.equal(me.body.user.role, 'admin');
   });
 
   test('auth errors', async () => {
@@ -63,6 +65,43 @@ describe('Finance Tracker API', () => {
     assert.equal(search.body.transactions.length, 1);
   });
 
+  test('transactions, summaries and budgets keep each currency separate', async () => {
+    await request(app).post('/api/transactions').set(auth())
+      .send({ amount: 100.25, currency: 'USD', date: day(2), category_id: cats.Salary.id }).expect(201);
+    await request(app).post('/api/transactions').set(auth())
+      .send({ amount: 12.34, currency: 'USD', date: day(3), category_id: cats.Groceries.id }).expect(201);
+    const pula = await request(app).post('/api/transactions').set(auth())
+      .send({ amount: 200.5, currency: 'BWP', date: day(3), category_id: cats.Groceries.id }).expect(201);
+    const zig = await request(app).post('/api/transactions').set(auth())
+      .send({ amount: 12.34, currency: 'ZWG', date: day(4), category_id: cats.Groceries.id }).expect(201);
+    const dinar = await request(app).post('/api/transactions').set(auth())
+      .send({ amount: 1.234, currency: 'KWD', date: day(5), category_id: cats.Groceries.id }).expect(201);
+
+    assert.equal(pula.body.transaction.currency, 'BWP');
+    assert.equal(zig.body.transaction.currency, 'ZWG');
+    assert.equal(dinar.body.transaction.amount, 1.234);
+    const usd = await request(app).get(`/api/transactions?month=${month}&currency=USD`).set(auth()).expect(200);
+    assert.equal(usd.body.transactions.length, 2);
+    assert.equal(usd.body.totals.income, 100.25);
+    assert.equal(usd.body.totals.expense, 12.34);
+    const summary = await request(app).get(`/api/summary?month=${month}&currency=USD`).set(auth()).expect(200);
+    assert.equal(summary.body.balance, 87.91);
+    assert.equal(summary.body.expense, 12.34);
+    assert.equal(summary.body.currency, 'USD');
+
+    await request(app).post('/api/budgets').set(auth())
+      .send({ category_id: cats.Groceries.id, limit: 20, currency: 'USD' }).expect(201);
+    const usdBudgets = await request(app).get(`/api/budgets?month=${month}&currency=USD`).set(auth()).expect(200);
+    assert.equal(usdBudgets.body.budgets.length, 1);
+    assert.equal(usdBudgets.body.budgets[0].spent, 12.34);
+    const pulaBudgets = await request(app).get(`/api/budgets?month=${month}&currency=BWP`).set(auth()).expect(200);
+    assert.equal(pulaBudgets.body.budgets.length, 0);
+
+    const currencies = await request(app).get('/api/currencies').expect(200);
+    assert.ok(currencies.body.currencies.some((currency) => currency.code === 'ZWG' && currency.name.startsWith('ZiG')));
+    assert.ok(currencies.body.currencies.some((currency) => currency.code === 'BWP'));
+  });
+
   test('budgets: upsert, usage and status', async () => {
     await request(app).post('/api/budgets').set(auth()).send({ category_id: cats.Salary.id, limit: 100 }).expect(400);
     await request(app).post('/api/budgets').set(auth()).send({ category_id: cats.Groceries.id, limit: 3000 }).expect(201);
@@ -94,6 +133,24 @@ describe('Finance Tracker API', () => {
     assert.equal(detail.body.goal.saved, 11500);
   });
 
+  test('goals and contributions retain their selected currency', async () => {
+    const created = await request(app).post('/api/goals').set(auth())
+      .send({ name: 'ZiG reserve', target: 1000, saved: 100, currency: 'ZWG' }).expect(201);
+    assert.equal(created.body.goal.currency, 'ZWG');
+    const contributed = await request(app).post(`/api/goals/${created.body.goal.id}/contribute`).set(auth())
+      .send({ amount: 25 }).expect(200);
+    assert.equal(contributed.body.goal.saved, 125);
+    const detail = await request(app).get(`/api/goals/${created.body.goal.id}`).set(auth()).expect(200);
+    assert.equal(detail.body.contributions[0].amount, 25);
+    const zigGoals = await request(app).get('/api/goals?currency=ZWG').set(auth()).expect(200);
+    assert.equal(zigGoals.body.goals.length, 1);
+    assert.equal(zigGoals.body.totals.saved, 125);
+    const usdGoals = await request(app).get('/api/goals?currency=USD').set(auth()).expect(200);
+    assert.equal(usdGoals.body.goals.length, 0);
+    await request(app).put(`/api/goals/${created.body.goal.id}`).set(auth())
+      .send({ currency: 'USD' }).expect(400);
+  });
+
   test('summary: totals, savings rate, breakdown, trend', async () => {
     const s = await request(app).get(`/api/summary?month=${month}`).set(auth()).expect(200);
     assert.equal(s.body.income, 20000);
@@ -122,5 +179,24 @@ describe('Finance Tracker API', () => {
     await request(app).delete('/api/auth/me').set(auth(otherToken)).send({ password: 'wrong' }).expect(400);
     await request(app).delete('/api/auth/me').set(auth(otherToken)).send({ password: 'Password123!' }).expect(204);
     await request(app).get('/api/auth/me').set(auth(otherToken)).expect(401);
+  });
+
+  test('admin can list accounts, change roles and delete accounts', async () => {
+    db.prepare('UPDATE users SET role = ? WHERE id = (SELECT id FROM users WHERE email = ?)').run('admin', 'ann@test.dev');
+    const charlie = await request(app).post('/api/auth/register').send({
+      name: 'Charlie', email: 'charlie@test.dev', password: 'Password123!',
+    }).expect(201);
+    const list = await request(app).get('/api/admin/users').set(auth()).expect(200);
+    assert.ok(list.body.users.some((account) => account.email === 'charlie@test.dev'));
+    await request(app).put(`/api/admin/users/${charlie.body.user.id}/role`).set(auth())
+      .send({ role: 'admin' }).expect(200);
+    const promoted = await request(app).get('/api/admin/users').set(auth()).expect(200);
+    assert.equal(promoted.body.users.find((account) => account.id === charlie.body.user.id).role, 'admin');
+    await request(app).delete(`/api/admin/users/${charlie.body.user.id}`).set(auth()).expect(204);
+    const ordinary = await request(app).post('/api/auth/register').send({
+      name: 'Dana', email: 'dana@test.dev', password: 'Password123!',
+    }).expect(201);
+    await request(app).get('/api/admin/users')
+      .set({ Authorization: `Bearer ${ordinary.body.token}` }).expect(403);
   });
 });

@@ -2,20 +2,24 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { Button, ErrorBanner, Field, Loading, type IconName } from '@/components/ui';
 import { colors, GOAL_ICONS, radius } from '@/constants/theme';
 import { api } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import { parseAmount } from '@/lib/format';
 import { confirm } from '@/lib/hooks';
 
 /** Create (no id) or edit (?id=) a savings goal. */
 export default function GoalForm() {
   const router = useRouter();
+  const { user } = useAuth();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const editing = !!id;
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
   const [saved, setSaved] = useState('');
+  const [currency, setCurrency] = useState(user?.currency || 'ZAR');
   const [deadline, setDeadline] = useState('');
   const [icon, setIcon] = useState<string>('flag');
   const [loading, setLoading] = useState(editing);
@@ -24,10 +28,8 @@ export default function GoalForm() {
 
   useEffect(() => {
     if (!editing) return;
-    api.goals().then(({ goals }) => {
-      const g = goals.find((x) => x.id === Number(id));
-      if (!g) { setError('Goal not found'); return; }
-      setName(g.name); setTarget(String(g.target)); setDeadline(g.deadline || ''); setIcon(g.icon);
+    api.goal(Number(id)).then(({ goal }) => {
+      setName(goal.name); setTarget(String(goal.target)); setCurrency(goal.currency); setDeadline(goal.deadline || ''); setIcon(goal.icon);
     }).catch((e) => setError(e.message)).finally(() => setLoading(false));
   }, [editing, id]);
 
@@ -41,7 +43,7 @@ export default function GoalForm() {
     setBusy(true); setError(null);
     try {
       const body = { name, target: t, deadline: deadline || null, icon };
-      if (editing) await api.updateGoal(Number(id), body); else await api.createGoal({ ...body, saved: s });
+      if (editing) await api.updateGoal(Number(id), body); else await api.createGoal({ ...body, currency, saved: s });
       router.back();
     } catch (e: any) { setError(e.message); setBusy(false); }
   }
@@ -63,6 +65,9 @@ export default function GoalForm() {
         <ScrollView contentContainerStyle={st.content} keyboardShouldPersistTaps="handled">
           {error ? <ErrorBanner message={error} /> : null}
           <Field label="Goal name" value={name} onChangeText={setName} placeholder="e.g. Emergency fund" testID="goal-name" />
+          {editing
+            ? <Field label="Currency (locked after creation)" value={currency} editable={false} />
+            : <CurrencyPicker value={currency} onChange={setCurrency} />}
           <Field label="Target amount" value={target} onChangeText={setTarget} keyboardType="decimal-pad" placeholder="0.00" testID="goal-target" />
           {!editing && <Field label="Already saved (optional)" value={saved} onChangeText={setSaved} keyboardType="decimal-pad" placeholder="0.00" testID="goal-saved" />}
           <Field label="Deadline (optional, YYYY-MM-DD)" value={deadline} onChangeText={setDeadline} autoCapitalize="none" placeholder="2027-12-31" testID="goal-deadline" />

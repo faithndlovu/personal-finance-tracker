@@ -1,12 +1,9 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
-import { Button, Card, ErrorBanner, Field, Segmented } from '@/components/ui';
+import { CurrencyPicker } from '@/components/CurrencyPicker';
+import { Button, Card, ErrorBanner, Field } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
-
-const CURRENCIES = [
-  { value: 'ZAR', label: 'ZAR' }, { value: 'USD', label: 'USD' }, { value: 'EUR', label: 'EUR' }, { value: 'GBP', label: 'GBP' },
-];
 
 export default function SignUp() {
   const { signUp } = useAuth();
@@ -34,8 +31,7 @@ export default function SignUp() {
           <Field label="Email" value={form.email} onChangeText={set('email')} autoCapitalize="none" keyboardType="email-address" autoComplete="email" testID="email" />
           <Field label="Password" value={form.password} onChangeText={set('password')} secureTextEntry placeholder="At least 8 characters" testID="password" />
           <Field label="Confirm password" value={form.confirm} onChangeText={set('confirm')} secureTextEntry testID="confirm" />
-          <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 6, fontWeight: '500' }}>Currency</Text>
-          <Segmented options={CURRENCIES} value={currency} onChange={setCurrency} />
+          <CurrencyPicker value={currency} onChange={setCurrency} />
           <View style={{ height: 18 }} />
           <Button title="Create account" onPress={submit} loading={busy} testID="create-account" />
         </Card>

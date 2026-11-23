@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, RefreshControl, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { TransactionRow } from '@/components/TransactionRow';
+import { CurrencyPicker } from '@/components/CurrencyPicker';
 import { Button, EmptyState, ErrorBanner, Loading, MonthSwitcher, Segmented } from '@/components/ui';
 import { colors, radius } from '@/constants/theme';
 import { api } from '@/lib/api';
@@ -14,16 +15,17 @@ type Filter = 'all' | 'income' | 'expense';
 
 export default function Transactions() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ currency?: string }>();
   const { user } = useAuth();
-  const cur = user?.currency || 'ZAR';
+  const [currency, setCurrency] = useState(params.currency || user?.currency || 'ZAR');
   const [month, setMonth] = useState(currentMonth());
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [timer, setTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const { data, error, loading, refreshing, refresh, reload } = useFocusData(
-    () => api.transactions({ month, type: filter === 'all' ? undefined : filter, q: debounced || undefined }),
-    [month, filter, debounced],
+    () => api.transactions({ month, currency, type: filter === 'all' ? undefined : filter, q: debounced || undefined }),
+    [month, currency, filter, debounced],
   );
 
   const onSearch = (text: string) => {
@@ -56,6 +58,7 @@ export default function Transactions() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
         ListHeaderComponent={
           <View>
+            <CurrencyPicker value={currency} onChange={setCurrency} />
             <MonthSwitcher month={month} onChange={setMonth} />
             <View style={st.search}>
               <Ionicons name="search" size={18} color={colors.muted} />
@@ -65,9 +68,9 @@ export default function Transactions() {
             <Segmented<Filter> value={filter} onChange={setFilter} options={[{ value: 'all', label: 'All' }, { value: 'income', label: 'Income' }, { value: 'expense', label: 'Expenses' }]} />
             {data && (
               <View style={st.totals}>
-                <View style={st.total}><Text style={st.totalLabel}>Income</Text><Text style={[st.totalValue, { color: colors.income }]}>{money(data.totals.income, cur)}</Text></View>
-                <View style={st.total}><Text style={st.totalLabel}>Expenses</Text><Text style={[st.totalValue, { color: colors.expense }]}>{money(data.totals.expense, cur)}</Text></View>
-                <View style={st.total}><Text style={st.totalLabel}>Net</Text><Text style={st.totalValue}>{money(data.totals.net, cur, { sign: true })}</Text></View>
+                <View style={st.total}><Text style={st.totalLabel}>Income</Text><Text style={[st.totalValue, { color: colors.income }]}>{money(data.totals.income, currency)}</Text></View>
+                <View style={st.total}><Text style={st.totalLabel}>Expenses</Text><Text style={[st.totalValue, { color: colors.expense }]}>{money(data.totals.expense, currency)}</Text></View>
+                <View style={st.total}><Text style={st.totalLabel}>Net</Text><Text style={st.totalValue}>{money(data.totals.net, currency, { sign: true })}</Text></View>
               </View>
             )}
             {error ? <ErrorBanner message={error} onRetry={() => reload()} /> : null}
@@ -77,12 +80,12 @@ export default function Transactions() {
         renderSectionHeader={({ section }) => (
           <View style={st.sectionHeader}>
             <Text style={st.sectionTitle}>{dateLabel(section.title)}</Text>
-            <Text style={st.sectionNet}>{money(section.net, cur, { sign: true })}</Text>
+            <Text style={st.sectionNet}>{money(section.net, currency, { sign: true })}</Text>
           </View>
         )}
         renderItem={({ item, index, section }) => (
           <View style={[st.item, index === 0 && st.first, index === section.data.length - 1 && st.last]}>
-            <TransactionRow t={item} currency={cur} showDate={false} onPress={() => router.push({ pathname: '/transaction', params: { id: String(item.id) } })} />
+            <TransactionRow t={item} showDate={false} onPress={() => router.push({ pathname: '/transaction', params: { id: String(item.id) } })} />
           </View>
         )}
         ListEmptyComponent={!loading && !error ? (

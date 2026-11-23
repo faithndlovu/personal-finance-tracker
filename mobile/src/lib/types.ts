@@ -1,26 +1,28 @@
-export type User = { id: number; name: string; email: string; currency: string; created_at: string };
+export type User = { id: number; name: string; email: string; currency: string; role: 'user' | 'admin'; created_at: string };
+export type AdminUser = User & { transaction_count: number; budget_count: number; goal_count: number };
+export type CurrencyOption = { code: string; name: string; fraction_digits: number };
 
 export type Category = {
   id: number; name: string; type: 'income' | 'expense'; icon: string; color: string; usage?: number;
 };
 
 export type Transaction = {
-  id: number; type: 'income' | 'expense'; amount: number; description: string; date: string;
+  id: number; type: 'income' | 'expense'; amount: number; currency: string; description: string; date: string;
   category_id: number; category_name: string; category_icon: string; category_color: string;
 };
-export type TransactionsResponse = { transactions: Transaction[]; totals: { income: number; expense: number; net: number } };
+export type TransactionsResponse = { currency: string; transactions: Transaction[]; totals: { income: number; expense: number; net: number } };
 
 export type Budget = {
-  id: number; category_id: number; category_name: string; category_icon: string; category_color: string;
+  id: number; category_id: number; category_name: string; category_icon: string; category_color: string; currency: string;
   limit: number; spent: number; remaining: number; percent: number; status: 'ok' | 'warning' | 'over';
 };
-export type BudgetsResponse = { month: string; budgets: Budget[]; totals: { limit: number; spent: number; remaining: number; percent: number } };
+export type BudgetsResponse = { month: string; currency: string; budgets: Budget[]; totals: { limit: number; spent: number; remaining: number; percent: number } };
 
 export type Goal = {
-  id: number; name: string; icon: string; deadline: string | null; target: number; saved: number; remaining: number;
+  id: number; name: string; icon: string; currency: string; deadline: string | null; target: number; saved: number; remaining: number;
   percent: number; achieved: boolean; overdue: boolean; months_left: number | null; monthly_needed: number | null;
 };
-export type GoalsResponse = { goals: Goal[]; totals: { target: number; saved: number; percent: number } };
+export type GoalsResponse = { currency: string; goals: Goal[]; totals: { target: number; saved: number; percent: number } };
 
 export type Summary = {
   month: string; currency: string; income: number; expense: number; net: number; savings_rate: number | null; balance: number;
