@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps, ReactNode } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle, type StyleProp } from 'react-native';
 import { colors, radius } from '@/constants/theme';
 import { monthLabel, shiftMonth, currentMonth } from '@/lib/format';
@@ -39,6 +40,35 @@ export function Field({ label, error, ...props }: TextInputProps & { label: stri
       <Text style={styles.label}>{label}</Text>
       <TextInput placeholderTextColor="#94A3B8" {...props} style={[styles.input, props.multiline && { minHeight: 70, textAlignVertical: 'top' }, props.style]} />
       {error ? <Text style={styles.fieldError}>{error}</Text> : null}
+    </View>
+  );
+}
+
+export function PasswordField({ label, value, onChangeText, ...props }: TextInputProps & { label: string }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={styles.passwordWrap}>
+        <TextInput
+          {...props}
+          value={value}
+          onChangeText={onChangeText}
+          placeholderTextColor="#94A3B8"
+          secureTextEntry={!visible}
+          style={styles.passwordInput}
+          accessibilityLabel={`${label} ${visible ? 'visible' : 'hidden'}`}
+        />
+        <Pressable
+          onPress={() => setVisible((current) => !current)}
+          accessibilityRole="button"
+          accessibilityLabel={visible ? `Hide ${label}` : `Show ${label}`}
+          hitSlop={8}
+          style={styles.passwordIcon}
+        >
+          <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.muted} />
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -128,6 +158,9 @@ export const styles = StyleSheet.create({
   buttonText: { fontSize: 16, fontWeight: '600' },
   label: { fontSize: 13, color: colors.muted, marginBottom: 6, fontWeight: '500' },
   input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, paddingHorizontal: 12, paddingVertical: 11, fontSize: 16, color: colors.text },
+  passwordWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm },
+  passwordInput: { flex: 1, paddingHorizontal: 12, paddingVertical: 11, fontSize: 16, color: colors.text },
+  passwordIcon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   fieldError: { color: colors.expense, fontSize: 12, marginTop: 4 },
   track: { backgroundColor: '#E8EDF5', borderRadius: 99, overflow: 'hidden', width: '100%' },
   empty: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 20 },

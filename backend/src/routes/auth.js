@@ -31,7 +31,8 @@ module.exports = function authRoutes(db) {
 
   router.post('/login', (req, res) => {
     const { email, password } = req.body || {};
-    const row = db.prepare('SELECT id, password_hash FROM users WHERE email = ?').get(email || '');
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const row = db.prepare('SELECT id, password_hash FROM users WHERE email = ? COLLATE NOCASE').get(normalizedEmail);
     if (!row || !bcrypt.compareSync(password || '', row.password_hash)) return res.status(401).json({ error: 'Invalid email or password' });
     const user = getUser.get(row.id);
     res.json({ token: signToken(user), user });

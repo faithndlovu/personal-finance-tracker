@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { CurrencyPicker } from '@/components/CurrencyPicker';
-import { Button, Card, ErrorBanner, Field } from '@/components/ui';
+import { Button, Card, ErrorBanner, Field, PasswordField } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
 
@@ -29,8 +29,8 @@ export default function SignUp() {
           {error ? <ErrorBanner message={error} /> : null}
           <Field label="Full name" value={form.name} onChangeText={set('name')} autoComplete="name" testID="name" />
           <Field label="Email" value={form.email} onChangeText={set('email')} autoCapitalize="none" keyboardType="email-address" autoComplete="email" testID="email" />
-          <Field label="Password" value={form.password} onChangeText={set('password')} secureTextEntry placeholder="At least 8 characters" testID="password" />
-          <Field label="Confirm password" value={form.confirm} onChangeText={set('confirm')} secureTextEntry testID="confirm" />
+          <PasswordField label="Password" value={form.password} onChangeText={set('password')} placeholder="At least 8 characters" testID="password" />
+          <PasswordField label="Confirm password" value={form.confirm} onChangeText={set('confirm')} testID="confirm" />
           <CurrencyPicker value={currency} onChange={setCurrency} />
           <View style={{ height: 18 }} />
           <Button title="Create account" onPress={submit} loading={busy} testID="create-account" />

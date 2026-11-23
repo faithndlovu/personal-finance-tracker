@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CurrencyPicker } from '@/components/CurrencyPicker';
-import { Button, Card, ErrorBanner, Field, SectionTitle } from '@/components/ui';
+import { Button, Card, ErrorBanner, Field, PasswordField, SectionTitle } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { api, getApiUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -75,8 +75,8 @@ export default function Settings() {
 
       <SectionTitle>Security</SectionTitle>
       <Card>
-        <Field label="Current password" value={pw.current} onChangeText={(v) => setPw((p) => ({ ...p, current: v }))} secureTextEntry />
-        <Field label="New password" value={pw.next} onChangeText={(v) => setPw((p) => ({ ...p, next: v }))} secureTextEntry placeholder="At least 8 characters" />
+        <PasswordField label="Current password" value={pw.current} onChangeText={(v) => setPw((p) => ({ ...p, current: v }))} />
+        <PasswordField label="New password" value={pw.next} onChangeText={(v) => setPw((p) => ({ ...p, next: v }))} placeholder="At least 8 characters" />
         <Button title="Change password" variant="secondary" onPress={changePassword} loading={busy === 'pw'} />
       </Card>
 
@@ -84,7 +84,7 @@ export default function Settings() {
 
       <SectionTitle>Danger zone</SectionTitle>
       <Card>
-        <Field label="Confirm with your password" value={delPw} onChangeText={setDelPw} secureTextEntry />
+        <PasswordField label="Confirm with your password" value={delPw} onChangeText={setDelPw} />
         <Button title="Delete my account" variant="danger" onPress={deleteAccount} loading={busy === 'delete'} />
       </Card>
       <Text style={st.footer}>Created by {CREATOR_NAME}</Text>

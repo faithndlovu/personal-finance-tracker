@@ -1,9 +1,8 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, ErrorBanner, Field } from '@/components/ui';
+import { Button, ErrorBanner, Field, PasswordField } from '@/components/ui';
 import { colors, radius } from '@/constants/theme';
 import { api, getApiUrl, setApiUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -42,15 +41,19 @@ export default function SignIn() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
             <View style={s.hero}>
-              <View style={s.logo}><Ionicons name="wallet" size={32} color={colors.navy} /></View>
-              <Text style={s.title}>{APP_NAME}</Text>
+              <Image
+                source={require('../../assets/fayora-logo.png')}
+                style={s.logo}
+                resizeMode="contain"
+                accessibilityLabel={APP_NAME}
+              />
               <Text style={s.subtitle}>Track spending, stick to budgets and reach your savings goals.</Text>
             </View>
             <View style={s.card}>
               <Text style={s.heading}>Welcome back</Text>
               {error ? <ErrorBanner message={error} /> : null}
               <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" placeholder="you@example.com" testID="email" />
-              <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" placeholder="••••••••" onSubmitEditing={submit} testID="password" />
+              <PasswordField label="Password" value={password} onChangeText={setPassword} autoComplete="password" placeholder="••••••••" onSubmitEditing={submit} testID="password" />
               <Button title="Sign in" onPress={submit} loading={busy} testID="sign-in" />
               <View style={[s.rowCenter, { marginTop: 16 }]}>
                 <Text style={{ color: colors.muted }}>New here? </Text>
@@ -85,8 +88,7 @@ export default function SignIn() {
 const s = StyleSheet.create({
   scroll: { padding: 20, flexGrow: 1, justifyContent: 'center', maxWidth: 520, width: '100%', alignSelf: 'center' },
   hero: { alignItems: 'center', marginBottom: 24 },
-  logo: { width: 64, height: 64, borderRadius: 20, backgroundColor: '#FACC15', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  title: { color: '#fff', fontSize: 28, fontWeight: '800' },
+  logo: { width: 300, height: 200, marginBottom: 2 },
   subtitle: { color: '#CBD5E1', fontSize: 15, textAlign: 'center', marginTop: 6, maxWidth: 300 },
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 20 },
   heading: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 16 },

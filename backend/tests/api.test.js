@@ -31,6 +31,7 @@ describe('Finance Tracker API', () => {
 
   test('auth errors', async () => {
     await request(app).post('/api/auth/login').send({ email: 'ann@test.dev', password: 'nope' }).expect(401);
+    await request(app).post('/api/auth/login').send({ email: '  ANN@TEST.DEV  ', password: 'Password123!' }).expect(200);
     await request(app).post('/api/auth/register').send({ name: 'A', email: 'ann@test.dev', password: 'Password123!' }).expect(409);
     await request(app).get('/api/transactions').expect(401);
   });
