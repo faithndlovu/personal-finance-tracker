@@ -57,6 +57,7 @@ test('migrates existing amounts into each user currency without changing their v
   migrateCurrencySchema(db);
 
   assert.equal(db.prepare('SELECT role FROM users WHERE id = 1').get().role, 'user');
+  assert.equal(db.prepare('SELECT token_version FROM users WHERE id = 1').get().token_version, 0);
   const tx = db.prepare('SELECT amount_minor, currency FROM transactions WHERE id = 1').get();
   assert.equal(tx.currency, 'KWD');
   assert.equal(fromMinorUnits(tx.amount_minor, tx.currency), 123.45);

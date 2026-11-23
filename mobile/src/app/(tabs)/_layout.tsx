@@ -14,16 +14,18 @@ export default function TabLayout() {
     <Tabs screenOptions={{
       tabBarActiveTintColor: colors.primary,
       tabBarInactiveTintColor: '#94A3B8',
+      tabBarActiveBackgroundColor: colors.primarySoft,
+      tabBarStyle: desktop
+        ? { width: 220, borderRightWidth: 1, borderRightColor: colors.border, paddingTop: 16, backgroundColor: colors.surface }
+        : { backgroundColor: colors.surface },
       headerStyle: { backgroundColor: colors.bg },
       headerShadowVisible: false,
       headerTitleStyle: { fontWeight: '800', fontSize: 20, color: colors.text },
       sceneStyle: { backgroundColor: colors.bg },
       tabBarPosition: desktop ? 'left' : 'bottom',
       tabBarLabelPosition: desktop ? 'beside-icon' : 'below-icon',
-      tabBarStyle: desktop
-        ? { width: 220, borderRightWidth: 1, borderRightColor: '#E2E8F0', paddingTop: 16 }
-        : undefined,
-      tabBarItemStyle: desktop ? { height: 64, flexDirection: 'row' } : undefined,
+      tabBarItemStyle: desktop ? { height: 54, flexDirection: 'row', marginHorizontal: 12, marginVertical: 4, borderRadius: 12 } : undefined,
+      tabBarLabelStyle: { fontWeight: '600' },
     }}>
       <Tabs.Screen name="index" options={{ title: 'Overview', tabBarIcon: tabIcon('pie-chart') }} />
       <Tabs.Screen name="transactions" options={{ title: 'Transactions', tabBarIcon: tabIcon('swap-vertical') }} />

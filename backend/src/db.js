@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   currency      TEXT NOT NULL DEFAULT 'ZAR',
   role          TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','admin')),
+  token_version INTEGER NOT NULL DEFAULT 0,
   created_at    TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -63,6 +64,13 @@ CREATE TABLE IF NOT EXISTS goal_contributions (
   goal_id      INTEGER NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
   amount_minor INTEGER NOT NULL,
   created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  token_hash TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 `;
@@ -122,6 +130,9 @@ function migrateCurrencySchema(db) {
   const migrate = db.transaction(() => {
     if (userColumns.size > 0 && !userColumns.has('role')) {
       db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','admin'))");
+    }
+    if (userColumns.size > 0 && !userColumns.has('token_version')) {
+      db.exec('ALTER TABLE users ADD COLUMN token_version INTEGER NOT NULL DEFAULT 0');
     }
     if (txColumns.has('amount_cents')) {
       db.exec('ALTER TABLE transactions RENAME COLUMN amount_cents TO amount_minor');
@@ -184,6 +195,12 @@ function migrateCurrencySchema(db) {
   });
 
   migrate();
+  db.exec(`CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    token_hash TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`);
   db.exec('DROP INDEX IF EXISTS idx_tx_user_date');
   db.exec('CREATE INDEX IF NOT EXISTS idx_tx_user_currency_date ON transactions(user_id, currency, date)');
 }

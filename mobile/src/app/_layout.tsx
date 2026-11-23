@@ -27,6 +27,8 @@ function RootNavigator() {
       <Stack.Protected guard={!signedIn} redirectTo="/">
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="sign-up" options={{ title: 'Create account', headerTransparent: false }} />
+        <Stack.Screen name="forgot-password" options={{ title: 'Forgot password', headerTransparent: false }} />
+        <Stack.Screen name="reset-password" options={{ title: 'Reset password', headerTransparent: false }} />
       </Stack.Protected>
     </Stack>
   );

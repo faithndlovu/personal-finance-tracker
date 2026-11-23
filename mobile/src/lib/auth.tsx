@@ -5,7 +5,7 @@ import type { User } from './types';
 type AuthState = {
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string, remember: boolean) => Promise<void>;
   signUp: (name: string, email: string, password: string, currency: string) => Promise<void>;
   signOut: () => Promise<void>;
   setUser: (u: User) => void;
@@ -35,9 +35,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AuthState>(() => ({
     user, loading, setUser, signOut,
-    async signIn(email, password) {
+    async signIn(email, password, remember) {
       const r = await api.login({ email: email.trim(), password });
-      await setToken(r.token);
+      await setToken(r.token, remember);
       setUser(r.user);
     },
     async signUp(name, email, password, currency) {

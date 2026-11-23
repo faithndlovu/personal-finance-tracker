@@ -39,9 +39,10 @@ export async function setApiUrl(url: string | null) {
   if (url) { baseUrl = url.trim().replace(/\/$/, ''); await prefs.set(API_URL_KEY, baseUrl); }
   else { baseUrl = defaultApiUrl(); await prefs.remove(API_URL_KEY); }
 }
-export async function setToken(value: string | null) {
+export async function setToken(value: string | null, remember = true) {
   token = value;
-  if (value) await secureStorage.set(TOKEN_KEY, value); else await secureStorage.remove(TOKEN_KEY);
+  if (value && remember) await secureStorage.set(TOKEN_KEY, value);
+  else await secureStorage.remove(TOKEN_KEY);
 }
 export const setUnauthorizedHandler = (fn: () => void) => { onUnauthorized = fn; };
 
@@ -83,6 +84,9 @@ export const api = {
   register: (body: { name: string; email: string; password: string; currency?: string }) =>
     request<{ token: string; user: User }>('/auth/register', { method: 'POST', body }),
   login: (body: { email: string; password: string }) => request<{ token: string; user: User }>('/auth/login', { method: 'POST', body }),
+  forgotPassword: (email: string) => request<{ message: string }>('/auth/forgot-password', { method: 'POST', body: { email } }),
+  resetPassword: (token: string, new_password: string) =>
+    request<{ message: string }>('/auth/reset-password', { method: 'POST', body: { token, new_password } }),
   me: () => request<{ user: User }>('/auth/me'),
   updateMe: (body: Partial<{ name: string; currency: string; current_password: string; new_password: string }>) =>
     request<{ user: User }>('/auth/me', { method: 'PUT', body }),
@@ -90,6 +94,8 @@ export const api = {
   adminUsers: () => request<{ users: import('./types').AdminUser[] }>('/admin/users'),
   setAdminRole: (id: number, role: 'user' | 'admin') =>
     request<{ user: import('./types').AdminUser }>(`/admin/users/${id}/role`, { method: 'PUT', body: { role } }),
+  adminResetPassword: (id: number) =>
+    request<{ resetUrl: string; expiresAt: string }>(`/admin/users/${id}/password-reset`, { method: 'POST' }),
   deleteUser: (id: number) => request<void>(`/admin/users/${id}`, { method: 'DELETE' }),
 
   summary: (month: string, currency: string) => request<Summary>(`/summary${qs({ month, currency })}`),

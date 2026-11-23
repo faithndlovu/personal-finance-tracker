@@ -4,7 +4,7 @@ const { createDb } = require('./db');
 const { authenticate } = require('./auth');
 const F = require('./finance');
 
-function createApp({ db = createDb() } = {}) {
+function createApp({ db = createDb(), emailReset } = {}) {
   const app = express();
   const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map((origin) => origin.trim()).filter(Boolean);
   if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
@@ -21,7 +21,7 @@ function createApp({ db = createDb() } = {}) {
 
   app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'fayora-finance-tracker-api', creator: 'Faith Lubelihle Ndlovu' }));
   app.get('/api/currencies', (req, res) => res.json({ currencies: F.listCurrencies() }));
-  app.use('/api/auth', require('./routes/auth')(db));
+  app.use('/api/auth', require('./routes/auth')(db, emailReset ? { emailReset } : undefined));
   app.use('/api/categories', auth, require('./routes/categories')(db));
   app.use('/api/transactions', auth, require('./routes/transactions')(db));
   app.use('/api/admin', auth, require('./routes/admin')(db));

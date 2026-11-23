@@ -1,5 +1,6 @@
 import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, ErrorBanner, Field, PasswordField } from '@/components/ui';
@@ -12,6 +13,7 @@ export default function SignIn() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [showServer, setShowServer] = useState(false);
@@ -26,7 +28,7 @@ export default function SignIn() {
   async function submit() {
     if (!email || !password) return setError('Enter your email and password');
     setBusy(true); setError(null);
-    try { await signIn(email, password); } catch (e: any) { setError(e.message); } finally { setBusy(false); }
+    try { await signIn(email, password, remember); } catch (e: any) { setError(e.message); } finally { setBusy(false); }
   }
 
   async function saveServer() {
@@ -41,12 +43,14 @@ export default function SignIn() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
             <View style={s.hero}>
-              <Image
-                source={require('../../assets/fayora-logo.png')}
-                style={s.logo}
-                resizeMode="contain"
-                accessibilityLabel={APP_NAME}
-              />
+              <View style={s.logoFrame}>
+                <Image
+                  source={require('../../assets/fayora-logo.png')}
+                  style={s.logo}
+                  resizeMode="contain"
+                  accessibilityLabel={APP_NAME}
+                />
+              </View>
               <Text style={s.subtitle}>Track spending, stick to budgets and reach your savings goals.</Text>
             </View>
             <View style={s.card}>
@@ -54,6 +58,18 @@ export default function SignIn() {
               {error ? <ErrorBanner message={error} /> : null}
               <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" placeholder="you@example.com" testID="email" />
               <PasswordField label="Password" value={password} onChangeText={setPassword} autoComplete="password" placeholder="••••••••" onSubmitEditing={submit} testID="password" />
+              <View style={s.loginOptions}>
+                <Pressable
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: remember }}
+                  onPress={() => setRemember((value) => !value)}
+                  style={s.remember}
+                >
+                  <Ionicons name={remember ? 'checkbox' : 'square-outline'} size={19} color={colors.primary} />
+                  <Text style={s.optionText}>Remember me</Text>
+                </Pressable>
+                <Link href="/forgot-password" style={s.forgot}>Forgot password?</Link>
+              </View>
               <Button title="Sign in" onPress={submit} loading={busy} testID="sign-in" />
               <View style={[s.rowCenter, { marginTop: 16 }]}>
                 <Text style={{ color: colors.muted }}>New here? </Text>
@@ -88,7 +104,8 @@ export default function SignIn() {
 const s = StyleSheet.create({
   scroll: { padding: 20, flexGrow: 1, justifyContent: 'center', maxWidth: 520, width: '100%', alignSelf: 'center' },
   hero: { alignItems: 'center', marginBottom: 24 },
-  logo: { width: 300, height: 200, marginBottom: 2 },
+  logoFrame: { width: 360, maxWidth: '100%', height: 180, backgroundColor: '#FFFFFF', borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 8, overflow: 'hidden' },
+  logo: { width: 340, maxWidth: '100%', height: 170 },
   subtitle: { color: '#CBD5E1', fontSize: 15, textAlign: 'center', marginTop: 6, maxWidth: 300 },
   card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 20 },
   heading: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 16 },
@@ -96,4 +113,8 @@ const s = StyleSheet.create({
   hint: { fontSize: 12, color: colors.muted, textAlign: 'center', marginTop: 16 },
   dot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
   credit: { color: '#CBD5E1', fontSize: 12, textAlign: 'center', marginTop: 18 },
+  loginOptions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: -4, marginBottom: 16 },
+  remember: { flexDirection: 'row', alignItems: 'center', gap: 7, minHeight: 36 },
+  optionText: { color: colors.text, fontSize: 13 },
+  forgot: { color: colors.primary, fontSize: 13, fontWeight: '600' },
 });

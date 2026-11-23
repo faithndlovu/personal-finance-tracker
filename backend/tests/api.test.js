@@ -7,7 +7,14 @@ const { currentMonth } = require('../src/finance');
 
 describe('Finance Tracker API', () => {
   const db = createDb(':memory:');
-  const app = createApp({ db });
+  let resetToken;
+  const app = createApp({
+    db,
+    emailReset: {
+      isConfigured: () => true,
+      sendPasswordResetEmail: async ({ token: value }) => { resetToken = value; },
+    },
+  });
   let token, otherToken, cats;
   const auth = (t = token) => ({ Authorization: `Bearer ${t}` });
   const month = currentMonth();
@@ -193,11 +200,53 @@ describe('Finance Tracker API', () => {
       .send({ role: 'admin' }).expect(200);
     const promoted = await request(app).get('/api/admin/users').set(auth()).expect(200);
     assert.equal(promoted.body.users.find((account) => account.id === charlie.body.user.id).role, 'admin');
+
+    const previousResetUrl = process.env.PASSWORD_RESET_URL;
+    process.env.PASSWORD_RESET_URL = 'https://fayora.example/reset-password?source=admin';
+    try {
+      const reset = await request(app).post(`/api/admin/users/${charlie.body.user.id}/password-reset`)
+        .set(auth()).expect(200);
+      const resetUrl = new URL(reset.body.resetUrl);
+      const resetToken = resetUrl.searchParams.get('token');
+      assert.equal(resetUrl.searchParams.get('source'), 'admin');
+      assert.match(resetToken, /^[a-f0-9]{64}$/);
+      assert.ok(new Date(reset.body.expiresAt).getTime() > Date.now());
+      await request(app).post('/api/auth/reset-password')
+        .send({ token: resetToken, new_password: 'AdminResetPassword123!' }).expect(200);
+      await request(app).get('/api/auth/me').set({ Authorization: `Bearer ${charlie.body.token}` }).expect(401);
+    } finally {
+      if (previousResetUrl === undefined) delete process.env.PASSWORD_RESET_URL;
+      else process.env.PASSWORD_RESET_URL = previousResetUrl;
+    }
+
     await request(app).delete(`/api/admin/users/${charlie.body.user.id}`).set(auth()).expect(204);
     const ordinary = await request(app).post('/api/auth/register').send({
       name: 'Dana', email: 'dana@test.dev', password: 'Password123!',
     }).expect(201);
     await request(app).get('/api/admin/users')
       .set({ Authorization: `Bearer ${ordinary.body.token}` }).expect(403);
+    await request(app).post(`/api/admin/users/${ordinary.body.user.id}/password-reset`)
+      .set({ Authorization: `Bearer ${ordinary.body.token}` }).expect(403);
+  });
+
+  test('password reset uses a one-time token and invalidates existing sessions', async () => {
+    const sent = await request(app).post('/api/auth/forgot-password')
+      .send({ email: '  ANN@TEST.DEV ' }).expect(200);
+    assert.match(sent.body.message, /If an account exists/);
+    assert.match(resetToken, /^[a-f0-9]{64}$/);
+
+    await request(app).post('/api/auth/reset-password')
+      .send({ token: resetToken, new_password: 'ChangedPassword123!' }).expect(200);
+    await request(app).get('/api/auth/me').set(auth()).expect(401);
+    await request(app).post('/api/auth/reset-password')
+      .send({ token: resetToken, new_password: 'AnotherPassword123!' }).expect(400);
+
+    const login = await request(app).post('/api/auth/login')
+      .send({ email: 'ann@test.dev', password: 'ChangedPassword123!' }).expect(200);
+    await request(app).get('/api/auth/me')
+      .set({ Authorization: `Bearer ${login.body.token}` }).expect(200);
+    const unknown = await request(app).post('/api/auth/forgot-password')
+      .send({ email: 'nobody@test.dev' }).expect(200);
+    assert.equal(unknown.body.message, sent.body.message);
   });
 });

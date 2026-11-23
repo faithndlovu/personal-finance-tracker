@@ -11,8 +11,10 @@ It covers **mobile development**, **database management**, **authentication** an
 **Authentication**
 - Register and sign in with bcrypt-hashed passwords and JWT tokens.
 - The token is stored in the device keychain/keystore (`expo-secure-store`), so you stay signed in.
+- Choose **Remember me** on sign-in to keep the session across app restarts, or leave it unchecked for this session only.
+- Forgot password emails a one-time reset link that expires after one hour.
 - Change your password, choose a default currency for new entries, or delete your account with all its data.
-- Admin accounts can open the Admin screen to list users, change roles and delete accounts.
+- Admin accounts can open the Admin screen to list users, change roles, generate one-time password reset links, and delete accounts. A generated link is shown only to the admin, expires after one hour, and can be shared with the account owner if email delivery is unavailable.
 
 **Multiple currencies**
 - Choose a currency separately for each transaction, budget and savings goal. Supported currencies include ZiG (`ZWG`), Botswana pula (`BWP`), USD and currencies provided by the runtime's ISO 4217 currency data.
@@ -123,6 +125,7 @@ The web app is hosted on Vercel, the API on Railway, and mobile builds are share
    - `JWT_SECRET` to a randomly generated secret of at least 32 characters. Generate one locally with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Never commit or share it.
    - `CORS_ORIGINS` to the exact Vercel origin, for example `https://your-project.vercel.app` (no trailing slash). Include additional trusted origins as a comma-separated list.
    - Optionally set `ADMIN_EMAIL` to an existing account email to grant that account admin access on startup.
+   - To enable email password recovery, set `SMTP_HOST`, `SMTP_PORT` (`587` for STARTTLS or `465` for SSL), `SMTP_USER`, `SMTP_PASSWORD`, optional `SMTP_FROM`, and `PASSWORD_RESET_URL=https://your-vercel-domain/reset-password`. Get the SMTP values from your email provider and keep credentials only in Railway variables. `PASSWORD_RESET_URL` is also required for admin-generated reset links; those links work without SMTP.
    Generate a public Railway domain and configure the service health check to use `/api/health`.
 3. **Connect Vercel to the Railway API.** Open the Vercel project → **Settings** → **Environment Variables**. Add `EXPO_PUBLIC_API_URL=https://your-api.up.railway.app` for Production (and Preview if needed), without a trailing slash. Redeploy the Vercel project. Do not add this variable to Railway.
 4. **Build mobile apps for sharing.** Create an Expo account, then run these commands from `mobile`. Link the project when prompted and set the API URL in both EAS environments:
@@ -153,6 +156,9 @@ All routes except register, login and health need `Authorization: Bearer <token>
 | GET | `/api/currencies` | Supported ISO currency codes, names and fraction digits |
 | POST | `/api/auth/register` | `{ name, email, password, currency? }` creates the account and default categories |
 | POST | `/api/auth/login` | `{ email, password }` returns `{ token, user }` |
+| POST | `/api/auth/forgot-password` | `{ email }` sends a one-time reset link when SMTP is configured |
+| POST | `/api/auth/reset-password` | `{ token, new_password }` sets a new password and revokes existing sessions |
+| POST | `/api/admin/users/:id/password-reset` | Admin-only; returns a one-time reset URL without sending email |
 | GET / PUT / DELETE | `/api/auth/me` | Profile, update (name, currency, password), delete account |
 | GET / POST | `/api/categories` | List / create categories |
 | DELETE | `/api/categories/:id` | Delete (only if it has no transactions) |

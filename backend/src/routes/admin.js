@@ -1,4 +1,6 @@
 const express = require('express');
+const passwordResetEmail = require('../password-reset-email');
+const { createPasswordResetToken, storePasswordResetToken } = require('../password-reset-token');
 
 module.exports = function adminRoutes(db) {
   const router = express.Router();
@@ -30,6 +32,23 @@ module.exports = function adminRoutes(db) {
     if (!user) return res.status(404).json({ error: 'User not found' });
     db.prepare('UPDATE users SET role = ? WHERE id = ?').run(role, id);
     res.json({ user: db.prepare('SELECT id, name, email, currency, role, created_at FROM users WHERE id = ?').get(id) });
+  });
+
+  router.post('/users/:id/password-reset', (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({ error: 'User ID is invalid' });
+    const user = db.prepare('SELECT id FROM users WHERE id = ?').get(id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const reset = createPasswordResetToken();
+    let resetUrl;
+    try {
+      resetUrl = passwordResetEmail.createPasswordResetUrl(reset.token);
+    } catch (error) {
+      return res.status(503).json({ error: error.message });
+    }
+    storePasswordResetToken(db, user.id, reset);
+    res.json({ resetUrl, expiresAt: reset.expiresAt });
   });
 
   router.delete('/users/:id', (req, res) => {
