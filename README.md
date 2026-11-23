@@ -44,7 +44,7 @@ It covers **mobile development**, **database management**, **authentication** an
 |---|---|
 | Mobile | Expo SDK 58, React Native 0.88, TypeScript, Expo Router (file-based navigation, protected routes), react-native-svg charts, expo-secure-store |
 | API | Node.js 22.13+, Express 5, SQLite (Node’s built-in `node:sqlite`, so there are no native modules to compile), JWT, bcrypt, CORS |
-| Tests | 15 API and unit tests (`node:test` and Supertest), TypeScript type-checking |
+| Tests | API and finance tests (`node:test` and Supertest), TypeScript type-checking |
 
 ## Project structure
 
@@ -101,10 +101,34 @@ npx expo start
 
 The app finds the API automatically by using the IP address of the computer running Expo. If it can't connect, tap **Server settings** on the sign-in screen and enter the network address the API printed. You can also set `EXPO_PUBLIC_API_URL` in `mobile/.env`. On Windows, allow Node.js through the firewall when asked.
 
+### Share it online
+
+The web app is hosted on Vercel, the API on Railway, and mobile builds are shared through Expo EAS. Vercel serves the static app; the API needs a persistent Railway volume because the database is SQLite.
+
+1. **Deploy the web app to Vercel.** Import this repository into your Vercel account, set the Root Directory to `mobile`, and deploy. [mobile/vercel.json](./mobile/vercel.json) configures the export and client-side routes. Note the production URL Vercel assigns.
+2. **Deploy the API to Railway.** Create a service from this repository with `backend` as its root directory. Add a persistent volume mounted at `/data`, then set these service variables:
+   - `NODE_ENV=production`
+   - `DB_PATH=/data/finance.db`
+   - `JWT_SECRET` to a randomly generated secret of at least 32 characters. Generate one locally with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Never commit or share it.
+   - `CORS_ORIGINS` to the exact Vercel origin, for example `https://your-project.vercel.app` (no trailing slash). Include additional trusted origins as a comma-separated list.
+   Generate a public Railway domain and configure the service health check to use `/api/health`.
+3. **Connect Vercel to the API.** In Vercel project settings, add `EXPO_PUBLIC_API_URL` with the Railway public URL (for example `https://your-api.up.railway.app`, without a trailing slash), then redeploy the web app. Since this URL is embedded in the client bundle, it is public configuration, not a secret.
+4. **Build mobile apps for sharing.** Create an Expo account, then run these commands from `mobile`. Link the project when prompted and set the API URL in both EAS environments:
+   ```bash
+   cd mobile
+   npx eas-cli@latest build:configure
+   npx eas-cli@latest env:set --name EXPO_PUBLIC_API_URL --value https://your-api.up.railway.app --environment preview --visibility plaintext
+   npx eas-cli@latest env:set --name EXPO_PUBLIC_API_URL --value https://your-api.up.railway.app --environment production --visibility plaintext
+   npx eas-cli@latest build --platform android --profile preview
+   ```
+   The Android preview build is an installable APK. EAS provides a download link when the build completes. For iOS testers, run `npx eas-cli@latest build --platform ios --profile preview`; internal builds require Apple Developer credentials and registered tester devices. Wider distribution is through the app stores. [mobile/eas.json](./mobile/eas.json) contains the build profiles.
+
+The API refuses to start in production without a strong `JWT_SECRET` and a configured `CORS_ORIGINS`. The demo seed command deletes and recreates its database and is intentionally blocked in production. Do not run it against live data. Enable and test backups for the Railway volume before inviting people to use real financial data. The example app identifiers in `mobile/app.json` must be replaced with identifiers you control before an app-store release.
+
 ### Tests
 
 ```bash
-cd backend && npm test             # 15 API + calculation tests
+cd backend && npm test             # API + calculation + production-config tests
 cd mobile && npm run typecheck     # TypeScript
 ```
 

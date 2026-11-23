@@ -8,6 +8,10 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const { createDb, addDefaultCategories } = require('./db');
 
+if (process.env.NODE_ENV === 'production') {
+  throw new Error('Demo seeding is disabled in production because it replaces the database');
+}
+
 const file = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'finance.db');
 for (const f of [file, `${file}-wal`, `${file}-shm`]) if (fs.existsSync(f)) fs.unlinkSync(f);
 const db = createDb(file);

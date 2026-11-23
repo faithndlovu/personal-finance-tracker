@@ -6,7 +6,16 @@ const F = require('./finance');
 
 function createApp({ db = createDb() } = {}) {
   const app = express();
-  app.use(cors());
+  const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map((origin) => origin.trim()).filter(Boolean);
+  if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
+    throw new Error('CORS_ORIGINS must contain the deployed web app origin in production');
+  }
+  app.use(cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(null, false);
+    },
+  }));
   app.use(express.json({ limit: '100kb' }));
   const auth = authenticate(db);
 
