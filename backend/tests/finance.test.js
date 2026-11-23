@@ -1,0 +1,54 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const F = require('../src/finance');
+
+test('toCents handles strings, decimals and invalid input', () => {
+  assert.equal(F.toCents('149.99'), 14999);
+  assert.equal(F.toCents(0.1 + 0.2), 30);
+  assert.equal(F.toCents('1,250.50'), 125050);
+  assert.equal(F.toCents('abc'), null);
+  assert.equal(F.fromCents(14999), 149.99);
+});
+
+test('date and month helpers', () => {
+  assert.equal(F.isValidDate('2026-02-29'), false);
+  assert.equal(F.isValidDate('2028-02-29'), true);
+  assert.equal(F.daysInMonth('2026-02'), 28);
+  assert.deepEqual(F.monthRange('2026-04'), ['2026-04-01', '2026-04-30']);
+  assert.deepEqual(F.previousMonths('2026-02', 3), ['2025-12', '2026-01', '2026-02']);
+});
+
+test('savings rate', () => {
+  assert.equal(F.savingsRate(1000_00, 750_00), 25);
+  assert.equal(F.savingsRate(1000_00, 1200_00), -20);
+  assert.equal(F.savingsRate(0, 500), null);
+});
+
+test('budget status thresholds', () => {
+  assert.equal(F.budgetStatus(500, 1000).status, 'ok');
+  assert.equal(F.budgetStatus(800, 1000).status, 'warning');
+  assert.equal(F.budgetStatus(1001, 1000).status, 'over');
+  assert.equal(F.budgetStatus(1200, 1000).remaining_cents, -200);
+});
+
+test('spending projection for current, past and future months', () => {
+  const today = new Date(Date.UTC(2026, 3, 10)); // 10 April 2026
+  const p = F.spendingProjection(3000_00, '2026-04', today);
+  assert.equal(p.daily_average_cents, 300_00);
+  assert.equal(p.projected_cents, 9000_00);
+  assert.equal(F.spendingProjection(3100_00, '2026-03', today).projected_cents, 3100_00);
+  assert.equal(F.spendingProjection(0, '2026-05', today).projected_cents, 0);
+});
+
+test('goal plan: monthly contribution needed', () => {
+  const today = new Date(Date.UTC(2026, 0, 1));
+  const plan = F.goalPlan({ target_cents: 12000_00, saved_cents: 6000_00, deadline: '2026-07-01' }, today);
+  assert.equal(plan.percent, 50);
+  assert.equal(plan.months_left, 6);
+  assert.equal(plan.monthly_needed_cents, 1000_00);
+  assert.equal(F.monthsUntil('2027-03-28', new Date(Date.UTC(2026, 10, 23))), 4);
+  assert.equal(F.monthsUntil('2027-03-20', new Date(Date.UTC(2026, 10, 23))), 3);
+  assert.equal(F.monthsUntil('2026-11-30', new Date(Date.UTC(2026, 10, 23))), 1);
+  assert.equal(F.goalPlan({ target_cents: 100, saved_cents: 150, deadline: null }).achieved, true);
+  assert.equal(F.goalPlan({ target_cents: 100, saved_cents: 10, deadline: '2025-01-01' }, today).overdue, true);
+});

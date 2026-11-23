@@ -1,0 +1,12 @@
+{
+  "name": "personal-finance-tracker",
+  "private": true,
+  "description": "Personal Finance Tracker: React Native (Expo) mobile app with a Node.js/Express/SQLite API.",
+  "scripts": {
+    "install:all": "npm --prefix backend install && npm --prefix mobile install",
+    "seed": "npm --prefix backend run seed",
+    "api": "npm --prefix backend start",
+    "mobile": "npm --prefix mobile start",
+    "test": "npm --prefix backend test && npm --prefix mobile run typecheck"
+  }
+}
