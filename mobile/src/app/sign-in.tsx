@@ -43,14 +43,12 @@ export default function SignIn() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
             <View style={s.hero}>
-              <View style={s.logoFrame}>
-                <Image
-                  source={require('../../assets/fayora-logo.png')}
-                  style={s.logo}
-                  resizeMode="contain"
-                  accessibilityLabel={APP_NAME}
-                />
-              </View>
+              <Image
+                source={require('../../assets/fayora-logo-on-navy.png')}
+                style={s.logo}
+                resizeMode="contain"
+                accessibilityLabel={APP_NAME}
+              />
               <Text style={s.subtitle}>Track spending, stick to budgets and reach your savings goals.</Text>
             </View>
             <View style={s.card}>
@@ -103,11 +101,10 @@ export default function SignIn() {
 
 const s = StyleSheet.create({
   scroll: { padding: 20, flexGrow: 1, justifyContent: 'center', maxWidth: 520, width: '100%', alignSelf: 'center' },
-  hero: { alignItems: 'center', marginBottom: 24 },
-  logoFrame: { width: 360, maxWidth: '100%', height: 180, backgroundColor: '#FFFFFF', borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 8, overflow: 'hidden' },
-  logo: { width: 340, maxWidth: '100%', height: 170 },
+  hero: { alignItems: 'center', marginBottom: 24, width: '100%' },
+  logo: { width: 300, maxWidth: '100%', height: 116, marginBottom: 12 },
   subtitle: { color: '#CBD5E1', fontSize: 15, textAlign: 'center', marginTop: 6, maxWidth: 300 },
-  card: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: 20 },
+  card: { width: '100%', backgroundColor: colors.surface, borderRadius: radius.lg, padding: 20 },
   heading: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 16 },
   rowCenter: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   hint: { fontSize: 12, color: colors.muted, textAlign: 'center', marginTop: 16 },
