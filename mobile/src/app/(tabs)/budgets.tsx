@@ -144,7 +144,7 @@ function BudgetSheet({ state, currency, existing, onClose, onSaved }: {
 }
 
 const st = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 60, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  content: { padding: 20, paddingBottom: 60, maxWidth: 1100, width: '100%', alignSelf: 'center' },
   row: { flexDirection: 'row', alignItems: 'center' },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   muted: { color: colors.muted, fontSize: 13 },

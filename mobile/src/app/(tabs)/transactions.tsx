@@ -102,7 +102,7 @@ export default function Transactions() {
 }
 
 const st = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 100, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  content: { padding: 20, paddingBottom: 100, maxWidth: 1100, width: '100%', alignSelf: 'center' },
   search: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.surface, borderRadius: radius.sm, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, marginVertical: 12 },
   searchInput: { flex: 1, paddingVertical: 10, fontSize: 15, color: colors.text },
   totals: { flexDirection: 'row', gap: 8, marginTop: 12 },

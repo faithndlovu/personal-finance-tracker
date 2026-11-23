@@ -22,6 +22,7 @@ function RootNavigator() {
         <Stack.Screen name="transaction" options={{ presentation: 'modal', title: 'Transaction', headerTransparent: false }} />
         <Stack.Screen name="goal" options={{ presentation: 'modal', title: 'Savings goal', headerTransparent: false }} />
         <Stack.Screen name="categories" options={{ title: 'Categories', headerTransparent: false }} />
+        <Stack.Screen name="admin" options={{ title: 'Account management', headerTransparent: false }} />
       </Stack.Protected>
       <Stack.Protected guard={!signedIn} redirectTo="/">
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />

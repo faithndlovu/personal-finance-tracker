@@ -102,7 +102,7 @@ function ContributeSheet({ goal, onClose, onDone }: { goal: Goal | null; onClose
 }
 
 const st = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 60, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  content: { padding: 20, paddingBottom: 60, maxWidth: 1100, width: '100%', alignSelf: 'center' },
   hero: { backgroundColor: colors.navy, borderRadius: radius.lg, padding: 20 },
   heroValue: { color: '#fff', fontSize: 30, fontWeight: '800', marginVertical: 4 },
   row: { flexDirection: 'row', alignItems: 'center' },

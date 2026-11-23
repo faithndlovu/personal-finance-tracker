@@ -19,7 +19,7 @@ export default function Overview() {
   const [currency, setCurrency] = useState(user?.currency || 'ZAR');
   const { data, error, loading, refreshing, refresh, reload } = useFocusData(() => api.summary(month, currency), [month, currency]);
   const { width } = useWindowDimensions();
-  const contentWidth = Math.min(width, 640) - 40 - 32;
+  const contentWidth = Math.min(width, 1100) - 40 - 32;
   const cur = currency;
 
   return (
@@ -130,7 +130,7 @@ const Legend = ({ color, label }: { color: string; label: string }) => (
 );
 
 const st = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 100, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  content: { padding: 20, paddingBottom: 100, maxWidth: 1100, width: '100%', alignSelf: 'center' },
   greeting: { fontSize: 15, color: colors.muted, marginBottom: 12 },
   hero: { backgroundColor: colors.navy, borderRadius: radius.lg, padding: 20, marginTop: 16 },
   heroLabel: { color: '#94A3B8', fontSize: 14 },

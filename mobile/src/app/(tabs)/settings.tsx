@@ -94,7 +94,7 @@ export default function Settings() {
 }
 
 const st = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 60, maxWidth: 640, width: '100%', alignSelf: 'center' },
+  content: { padding: 20, paddingBottom: 60, maxWidth: 1100, width: '100%', alignSelf: 'center' },
   profile: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.navy, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#FACC15', fontWeight: '800', fontSize: 18 },

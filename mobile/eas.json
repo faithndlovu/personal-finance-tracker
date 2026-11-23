@@ -3,12 +3,18 @@
     "preview": {
       "distribution": "internal",
       "environment": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://personal-finance-tracker-production-35a4a3ee.up.railway.app"
+      },
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
-      "environment": "production"
+      "environment": "production",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://personal-finance-tracker-production-35a4a3ee.up.railway.app"
+      }
     }
   }
 }
