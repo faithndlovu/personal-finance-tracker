@@ -19,7 +19,7 @@ function createApp({ db = createDb() } = {}) {
   app.use(express.json({ limit: '100kb' }));
   const auth = authenticate(db);
 
-  app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'finance-tracker-api' }));
+  app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'fayora-finance-tracker-api', creator: 'Faith Lubelihle Ndlovu' }));
   app.get('/api/currencies', (req, res) => res.json({ currencies: F.listCurrencies() }));
   app.use('/api/auth', require('./routes/auth')(db));
   app.use('/api/categories', auth, require('./routes/categories')(db));

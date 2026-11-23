@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Finance Tracker",
+    "name": "FAYORA Finance Tracker",
     "slug": "personal-finance-tracker",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -29,6 +29,9 @@
       "expo-font"
     ],
     "scheme": "financetracker",
+    "extra": {
+      "creator": "Faith Lubelihle Ndlovu"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",

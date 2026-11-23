@@ -8,6 +8,7 @@ import { colors } from '@/constants/theme';
 import { api, getApiUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { confirm, notify } from '@/lib/hooks';
+import { CREATOR_NAME } from '@/lib/brand';
 
 export default function Settings() {
   const router = useRouter();
@@ -86,6 +87,7 @@ export default function Settings() {
         <Field label="Confirm with your password" value={delPw} onChangeText={setDelPw} secureTextEntry />
         <Button title="Delete my account" variant="danger" onPress={deleteAccount} loading={busy === 'delete'} />
       </Card>
+      <Text style={st.footer}>Created by {CREATOR_NAME}</Text>
       <Text style={st.footer}>Connected to {getApiUrl()}</Text>
     </ScrollView>
   );

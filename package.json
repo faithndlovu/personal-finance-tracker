@@ -1,7 +1,7 @@
 {
   "name": "personal-finance-tracker",
   "private": true,
-  "description": "Personal Finance Tracker: React Native (Expo) mobile app with a Node.js/Express/SQLite API.",
+  "description": "FAYORA Finance Tracker by Faith Lubelihle Ndlovu: React Native (Expo) mobile app with a Node.js/Express/SQLite API.",
   "scripts": {
     "install:all": "npm --prefix backend install && npm --prefix mobile install",
     "seed": "npm --prefix backend run seed",

@@ -7,6 +7,7 @@ import { Button, ErrorBanner, Field } from '@/components/ui';
 import { colors, radius } from '@/constants/theme';
 import { api, getApiUrl, setApiUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { APP_NAME, CREATOR_NAME } from '@/lib/brand';
 
 export default function SignIn() {
   const { signIn } = useAuth();
@@ -42,7 +43,7 @@ export default function SignIn() {
           <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
             <View style={s.hero}>
               <View style={s.logo}><Ionicons name="wallet" size={32} color={colors.navy} /></View>
-              <Text style={s.title}>Finance Tracker</Text>
+              <Text style={s.title}>{APP_NAME}</Text>
               <Text style={s.subtitle}>Track spending, stick to budgets and reach your savings goals.</Text>
             </View>
             <View style={s.card}>
@@ -73,6 +74,7 @@ export default function SignIn() {
                 <Button title="Save & test connection" variant="secondary" onPress={saveServer} />
               </View>
             )}
+            <Text style={s.credit}>Created by {CREATOR_NAME}</Text>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -91,4 +93,5 @@ const s = StyleSheet.create({
   rowCenter: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   hint: { fontSize: 12, color: colors.muted, textAlign: 'center', marginTop: 16 },
   dot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
+  credit: { color: '#CBD5E1', fontSize: 12, textAlign: 'center', marginTop: 18 },
 });

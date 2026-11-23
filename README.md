@@ -1,4 +1,6 @@
-# Personal Finance Tracker
+# FAYORA Finance Tracker
+
+Created by **Faith Lubelihle Ndlovu**.
 
 A cross-platform **mobile app** (React Native + Expo) backed by a **REST API** (Node.js, Express, SQLite) for tracking income and expenses, setting monthly budgets and saving towards goals.
 
@@ -112,15 +114,17 @@ The app finds the API automatically by using the IP address of the computer runn
 
 The web app is hosted on Vercel, the API on Railway, and mobile builds are shared through Expo EAS. Vercel serves the static app; the API needs a persistent Railway volume because the database is SQLite.
 
-1. **Deploy the web app to Vercel.** Import this repository into your Vercel account, set the Root Directory to `mobile`, and deploy. [mobile/vercel.json](./mobile/vercel.json) configures the export and client-side routes. Note the production URL Vercel assigns.
-2. **Deploy the API to Railway.** Create a service from this repository with `backend` as its root directory. Add a persistent volume mounted at `/data`, then set these service variables:
+1. **Deploy the web app to Vercel.** Import this repository into Vercel, set the project Root Directory to `mobile`, and deploy. [mobile/vercel.json](./mobile/vercel.json) configures the export and client-side routes. Note the production URL Vercel assigns.
+2. **Deploy the API to Railway.** Open or create the service from this repository, set its Root Directory to `backend`, and attach a persistent volume mounted at `/data`.
+   - In Railway, open **Settings** and rename the service to `FAYORA API`.
+   - Open **Variables** and add or verify:
    - `NODE_ENV=production`
    - `DB_PATH=/data/finance.db`
    - `JWT_SECRET` to a randomly generated secret of at least 32 characters. Generate one locally with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Never commit or share it.
    - `CORS_ORIGINS` to the exact Vercel origin, for example `https://your-project.vercel.app` (no trailing slash). Include additional trusted origins as a comma-separated list.
    - Optionally set `ADMIN_EMAIL` to an existing account email to grant that account admin access on startup.
    Generate a public Railway domain and configure the service health check to use `/api/health`.
-3. **Connect Vercel to the API.** In Vercel project settings, add `EXPO_PUBLIC_API_URL` with the Railway public URL (for example `https://your-api.up.railway.app`, without a trailing slash), then redeploy the web app. Since this URL is embedded in the client bundle, it is public configuration, not a secret.
+3. **Connect Vercel to the Railway API.** Open the Vercel project → **Settings** → **Environment Variables**. Add `EXPO_PUBLIC_API_URL=https://your-api.up.railway.app` for Production (and Preview if needed), without a trailing slash. Redeploy the Vercel project. Do not add this variable to Railway.
 4. **Build mobile apps for sharing.** Create an Expo account, then run these commands from `mobile`. Link the project when prompted and set the API URL in both EAS environments:
    ```bash
    cd mobile
